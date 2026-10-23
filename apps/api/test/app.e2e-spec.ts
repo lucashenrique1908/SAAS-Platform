@@ -1,0 +1,36 @@
+/**
+ * Responsabilidade: validar o funcionamento da API por meio de requisições HTTP reais.
+ *
+ * Funcionamento: inicia a aplicação de teste, consulta a rota raiz e verifica a resposta.
+ *
+ * Arquitetura: exercita a integração entre o AppModule, o servidor NestJS e o endpoint.
+ */
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import { App } from 'supertest/types.js';
+import { AppModule } from './../src/app.module.js';
+
+describe('AppController (e2e)', () => {
+  let app: INestApplication<App>;
+
+  beforeEach(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    await app.init();
+  });
+
+  it('/ (GET)', () => {
+    return request(app.getHttpServer())
+      .get('/')
+      .expect(200)
+      .expect('Hello World!');
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+});
