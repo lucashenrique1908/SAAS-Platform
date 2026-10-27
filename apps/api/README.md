@@ -27,11 +27,35 @@
 
 ## Desenvolvimento local
 
-O serviço PostgreSQL é iniciado na raiz do monorepo com `docker compose up -d`.
-Configure as variáveis `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`,
-`POSTGRES_PASSWORD` e `POSTGRES_DB` no arquivo `.env` da raiz. O arquivo
-`.env.example` lista os nomes esperados; use os mesmos valores de conexão
-configurados no serviço PostgreSQL do Compose.
+Copie `.env.example` para `.env` na raiz do monorepo e preencha as credenciais
+locais. O arquivo de exemplo contém somente nomes e valores ilustrativos; use
+os mesmos parâmetros de conexão configurados no PostgreSQL local. O `.env` não
+deve ser versionado nem compartilhado. O serviço local pode ser iniciado na raiz
+com `docker compose up -d`.
+
+O NestJS e o TypeORM CLI carregam `../../.env` durante o desenvolvimento local.
+As configurações obrigatórias são `POSTGRES_HOST`, `POSTGRES_PORT`,
+`POSTGRES_USER`, `POSTGRES_PASSWORD` e `POSTGRES_DB`. A validação centralizada
+rejeita variáveis ausentes ou vazias e exige que a porta seja um inteiro entre
+1 e 65535.
+
+## Staging
+
+Defina `NODE_ENV=staging` e forneça as cinco variáveis de PostgreSQL diretamente
+no ambiente do processo da API e dos comandos de migration. O arquivo `.env`
+local não é carregado nesse ambiente. Armazene as credenciais no gestor de
+segredos da plataforma de deploy e injete-as como variáveis de ambiente em
+runtime; não as inclua no repositório, imagem ou logs.
+
+## Production
+
+Defina `NODE_ENV=production` e forneça as cinco variáveis de PostgreSQL
+diretamente no ambiente da aplicação. Nem o NestJS nem o TypeORM CLI carregam
+arquivos `.env` nesse ambiente. Use o mecanismo de secrets do orquestrador ou
+um gestor de segredos (por exemplo, o serviço gerenciado pelo provedor de
+nuvem) para disponibilizar os valores em runtime, com acesso mínimo necessário
+e rotação conforme a política operacional. Não grave segredos em código,
+imagens, logs ou no Git.
 
 Os comandos de migration são executados no workspace da API:
 

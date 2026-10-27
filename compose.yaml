@@ -7,10 +7,13 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no ficheiro .env}
       POSTGRES_DB: saas_db
     ports:
+      # Restringe a conexão publicada pelo container à máquina local.
       - "127.0.0.1:5432:5432"
     volumes:
+      # Preserva os dados do PostgreSQL no volume nomeado entre reinicializações do container.
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
+      # Permite que o Compose identifique quando o banco está pronto para aceitar conexões.
       test: ["CMD-SHELL", "pg_isready -U saas_user -d saas_db"]
       interval: 5s
       timeout: 5s

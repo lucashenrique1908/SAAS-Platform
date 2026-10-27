@@ -11,35 +11,39 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { resolve } from 'node:path';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
+import {
+  shouldLoadLocalEnvFile,
+  validatePostgresEnvironment,
+} from './config/env.validation.js';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '../../.env',
+      // Mantém o arquivo local apenas no desenvolvimento; ambientes gerenciados usam variáveis injetadas.
+      ignoreEnvFile: !shouldLoadLocalEnvFile(process.env.NODE_ENV),
+      // Valida as configurações antes de disponibilizá-las aos módulos da aplicação.
+      validate: validatePostgresEnvironment,
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
-        const port = Number(config.get('POSTGRES_PORT', '5432'));
-        if (!Number.isInteger(port) || port < 1 || port > 65535) {
-          throw new Error('POSTGRES_PORT deve ser um número de porta válido.');
-        }
-
-        const isProduction = process.env.NODE_ENV === 'production';
-        const migrationsPath = isProduction
-          ? resolve(process.cwd(), 'dist/database/migrations/*.js')
-          : resolve(process.cwd(), 'src/database/migrations/*.ts');
+        // Usa migrations TypeScript no ambiente local/teste e JavaScript compilado em Staging/Production.
+        const migrationsPath = shouldLoadLocalEnvFile(process.env.NODE_ENV)
+          ? resolve(process.cwd(), 'src/database/migrations/*.ts')
+          : resolve(process.cwd(), 'dist/database/migrations/*.js');
 
         return {
           type: 'postgres' as const,
-          host: config.get<string>('POSTGRES_HOST', '127.0.0.1'),
-          port,
+          host: config.getOrThrow<string>('POSTGRES_HOST'),
+          port: config.getOrThrow<number>('POSTGRES_PORT'),
           username: config.getOrThrow<string>('POSTGRES_USER'),
           password: config.getOrThrow<string>('POSTGRES_PASSWORD'),
           database: config.getOrThrow<string>('POSTGRES_DB'),
           autoLoadEntities: true,
           migrations: [migrationsPath],
+          // O esquema do banco é alterado por migrations explícitas, nunca por sincronização automática.
           synchronize: false,
         };
       },
