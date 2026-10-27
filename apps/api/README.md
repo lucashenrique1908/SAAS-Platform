@@ -25,6 +25,25 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+## Desenvolvimento local
+
+O serviço PostgreSQL é iniciado na raiz do monorepo com `docker compose up -d`.
+Configure as variáveis `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`,
+`POSTGRES_PASSWORD` e `POSTGRES_DB` no arquivo `.env` da raiz. O arquivo
+`.env.example` lista os nomes esperados; use os mesmos valores de conexão
+configurados no serviço PostgreSQL do Compose.
+
+Os comandos de migration são executados no workspace da API:
+
+```bash
+npm run migration:generate --workspace=api -- src/database/migrations/NomeDaMigration
+npm run migration:run --workspace=api
+npm run migration:revert --workspace=api
+```
+
+O TypeORM está configurado com `synchronize: false`; alterações de esquema
+devem ser controladas por migrations explícitas.
+
 ## Project setup
 
 ```bash
