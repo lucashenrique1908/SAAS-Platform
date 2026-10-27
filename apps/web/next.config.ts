@@ -9,10 +9,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  // Ativa a composição de componentes com cache e a pré-busca parcial de rotas.
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {
     rules: {
+      // Encaminha arquivos CSS ao carregador do Tailwind durante o uso do Turbopack.
       "*.css": {
         loaders: ["@tailwindcss/turbopack"],
         as: "*.css",

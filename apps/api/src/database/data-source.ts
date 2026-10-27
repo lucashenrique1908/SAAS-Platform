@@ -1,33 +1,33 @@
+/**
+ * Responsabilidade: fornecer ao TypeORM CLI a configuração de conexão e as migrations da API.
+ *
+ * Funcionamento: carrega o arquivo local em ambientes locais/teste e valida as configurações antes da conexão.
+ *
+ * Arquitetura: reutiliza as regras de ambiente da API e mantém o esquema controlado por migrations explícitas.
+ */
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { config as loadEnv } from 'dotenv';
 import { DataSource } from 'typeorm';
+import {
+  shouldLoadLocalEnvFile,
+  validatePostgresEnvironment,
+} from '../config/env.validation.js';
 
 const envPath = resolve(process.cwd(), '../../.env');
-if (existsSync(envPath)) {
-  loadEnv({ path: envPath });
+if (shouldLoadLocalEnvFile(process.env.NODE_ENV) && existsSync(envPath)) {
+  loadEnv({ path: envPath, quiet: true });
 }
 
-const port = Number(process.env.POSTGRES_PORT ?? '5432');
-if (!Number.isInteger(port) || port < 1 || port > 65535) {
-  throw new Error('POSTGRES_PORT deve ser um número de porta válido.');
-}
-
-function requiredEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`A variável de ambiente ${name} é obrigatória.`);
-  }
-  return value;
-}
+const databaseConfig = validatePostgresEnvironment(process.env);
 
 const dataSource = new DataSource({
   type: 'postgres',
-  host: process.env.POSTGRES_HOST ?? '127.0.0.1',
-  port,
-  username: requiredEnv('POSTGRES_USER'),
-  password: requiredEnv('POSTGRES_PASSWORD'),
-  database: requiredEnv('POSTGRES_DB'),
+  host: databaseConfig.POSTGRES_HOST,
+  port: databaseConfig.POSTGRES_PORT,
+  username: databaseConfig.POSTGRES_USER,
+  password: databaseConfig.POSTGRES_PASSWORD,
+  database: databaseConfig.POSTGRES_DB,
   entities: [],
   migrations: [resolve(process.cwd(), 'src/database/migrations/*.ts')],
   synchronize: false,
