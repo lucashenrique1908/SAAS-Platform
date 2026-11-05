@@ -6,7 +6,10 @@
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" eslint.config.mjs next.config.ts",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" eslint.config.mjs next.config.ts",
+    "typecheck": "tsc --noEmit --incremental false"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -23,7 +26,6 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
     "eslint-config-next": "16.4.2",
     "shadcn": "^4.22.1",
     "tailwindcss": "^4",

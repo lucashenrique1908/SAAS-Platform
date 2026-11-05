@@ -32,7 +32,9 @@ describe('validatePostgresEnvironment', () => {
     const config = { ...validConfig };
     delete config[name];
 
-    expect(() => validatePostgresEnvironment(config)).toThrow(`${name} está ausente`);
+    expect(() => validatePostgresEnvironment(config)).toThrow(
+      `${name} está ausente`,
+    );
   });
 
   it.each([

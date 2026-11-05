@@ -5,4 +5,4 @@
  *
  * Arquitetura: oferece uma entrada comum para utilitários compartilhados pela interface.
  */
-export { cn } from "cn"
+export { cn } from "cn";

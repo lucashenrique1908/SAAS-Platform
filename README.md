@@ -1,4 +1,3 @@
-
 # SaaS Platform
 
 Plataforma SaaS modular destinada a diferentes perfis profissionais.
