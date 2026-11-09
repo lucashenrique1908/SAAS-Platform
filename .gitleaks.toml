@@ -1,0 +1,18 @@
+title = "SaaS Platform secret scanning"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Allow only the documented non-secret values in .env.example."
+condition = "AND"
+paths = ['''(^|/)\.env\.example$''']
+regexes = [
+  '''^(seu_usuario_local|defina_uma_senha_local|seu_banco_local)$''',
+]
+
+[[allowlists]]
+description = "Allow the non-secret placeholder token in the NestJS README template."
+condition = "AND"
+paths = ['''(^|/)apps/api/README\.md$''']
+regexes = ['''^abc123def456$''']
