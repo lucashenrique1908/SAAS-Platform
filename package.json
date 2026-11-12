@@ -11,7 +11,8 @@
     "format": "npm run format --workspaces --if-present && prettier --write \"README.md\" \"docs/**/*.md\" \".github/**/*.md\" \".github/**/*.yml\"",
     "format:check": "npm run format:check --workspaces --if-present && prettier --check \"README.md\" \"docs/**/*.md\" \".github/**/*.md\" \".github/**/*.yml\"",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspace=apps/api",
+    "test": "npm run test --workspaces --if-present",
+    "test:e2e": "npm run test:e2e --workspace=apps/api",
     "build": "npm run build --workspaces --if-present",
     "audit": "npm audit --audit-level=high",
     "prepare": "husky"
@@ -39,5 +40,8 @@
       "multer": "2.5.0"
     },
     "body-parser": "2.4.0"
+  },
+  "allowScripts": {
+    "argon2@0.45.2": true
   }
 }

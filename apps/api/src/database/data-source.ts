@@ -28,7 +28,14 @@ const dataSource = new DataSource({
   username: databaseConfig.POSTGRES_USER,
   password: databaseConfig.POSTGRES_PASSWORD,
   database: databaseConfig.POSTGRES_DB,
-  entities: [],
+  entities: [
+    resolve(
+      process.cwd(),
+      shouldLoadLocalEnvFile(process.env.NODE_ENV)
+        ? 'src/**/*.entity.ts'
+        : 'dist/**/*.entity.js',
+    ),
+  ],
   migrations: [resolve(process.cwd(), 'src/database/migrations/*.ts')],
   synchronize: false,
 });
