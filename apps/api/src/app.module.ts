@@ -7,10 +7,16 @@
  */
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { resolve } from 'node:path';
+import { AuthModule } from './auth/auth.module.js';
+import { CsrfGuard } from './auth/guards/csrf.guard.js';
+import { SessionAuthGuard } from './auth/guards/session-auth.guard.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
+import { OrganizationsModule } from './organizations/organizations.module.js';
 import {
   shouldLoadLocalEnvFile,
   validatePostgresEnvironment,
@@ -26,6 +32,12 @@ import {
       // Valida as configurações antes de disponibilizá-las aos módulos da aplicação.
       validate: validatePostgresEnvironment,
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60_000,
+        limit: process.env.NODE_ENV === 'test' ? 1_000 : 60,
+      },
+    ]),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
@@ -48,8 +60,15 @@ import {
         };
       },
     }),
+    AuthModule,
+    OrganizationsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    { provide: APP_GUARD, useClass: SessionAuthGuard },
+    { provide: APP_GUARD, useClass: CsrfGuard },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class AppModule {}

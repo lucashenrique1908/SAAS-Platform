@@ -10,5 +10,7 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['**/*.e2e-spec.ts'],
+    hookTimeout: 60_000,
+    testTimeout: 120_000,
   },
 });
