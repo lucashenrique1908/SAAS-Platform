@@ -34,6 +34,32 @@ export class TransactionalEmailService {
     );
   }
 
+  async sendOrganizationInvitationEmail(
+    email: string,
+    token: string,
+    organizationName: string,
+  ): Promise<void> {
+    const url = new URL('/invite/accept', this.frontendBaseUrl());
+    url.hash = new URLSearchParams({ token }).toString();
+    const safeName = organizationName.replace(
+      /[&<>"']/g,
+      (character) =>
+        ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        })[character]!,
+    );
+    await this.send(
+      email,
+      `Invitation to join ${organizationName}`,
+      `<p>You have been invited to join ${safeName}.</p><p><a href="${url.toString()}">Accept invitation</a></p><p>This link expires in three days.</p>`,
+      `You have been invited to join ${organizationName}. Accept your invitation: ${url.toString()}`,
+    );
+  }
+
   private frontendBaseUrl(): string {
     return this.config
       .getOrThrow<string>('FRONTEND_BASE_URL')

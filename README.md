@@ -22,6 +22,8 @@ Plataforma SaaS modular destinada a diferentes perfis profissionais.
 
 ## Estado
 
-Sprint 1 — Preparação da infraestrutura.
+Sprint 1 — Authentication & Authorization.
 
-Projeto em desenvolvimento.
+Sprint 2 — Organization & Workspace Management está implementada; consulte
+[`docs/ORGANIZATION_WORKSPACE.md`](docs/ORGANIZATION_WORKSPACE.md) para a
+arquitetura, os endpoints e a validação local.

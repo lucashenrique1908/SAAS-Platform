@@ -99,7 +99,10 @@ export class AuthController {
     if (!request.authUser) {
       throw new BadRequestException('Authenticated user context is missing.');
     }
-    return this.authService.getProfile(request.authUser.id);
+    return this.authService.getProfile(
+      request.authUser.id,
+      request.authSession?.activeOrganizationId,
+    );
   }
 
   @Public()

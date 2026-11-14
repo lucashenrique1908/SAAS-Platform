@@ -1,0 +1,83 @@
+import { Transform } from 'class-transformer';
+import {
+  IsBoolean,
+  IsEmail,
+  IsOptional,
+  IsString,
+  IsUrl,
+  MaxLength,
+  MinLength,
+  Matches,
+} from 'class-validator';
+
+const emptyToNull = ({ value }: { value: unknown }) =>
+  value === '' ? null : value;
+
+export class UpdateOrganizationDto {
+  @Transform(emptyToNull)
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(120)
+  name?: string | null;
+
+  @Transform(emptyToNull)
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(100)
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+  slug?: string | null;
+
+  @Transform(emptyToNull)
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  description?: string | null;
+
+  @Transform(emptyToNull)
+  @IsOptional()
+  @IsUrl({ require_protocol: true })
+  @MaxLength(2048)
+  logoUrl?: string | null;
+
+  @Transform(emptyToNull)
+  @IsOptional()
+  @IsEmail()
+  @MaxLength(320)
+  contactEmail?: string | null;
+
+  @Transform(emptyToNull)
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  phone?: string | null;
+
+  @Transform(emptyToNull)
+  @IsOptional()
+  @IsUrl({ require_protocol: true })
+  @MaxLength(2048)
+  website?: string | null;
+
+  @Transform(emptyToNull)
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  country?: string | null;
+
+  @Transform(emptyToNull)
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  industry?: string | null;
+
+  @Transform(emptyToNull)
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Za-z0-9][A-Za-z0-9 .-]{3,79}$/)
+  taxId?: string | null;
+
+  @IsOptional()
+  @IsBoolean()
+  confirmSlugChange?: boolean;
+}

@@ -1,5 +1,9 @@
 # Authentication and authorization
 
+Organization creation, management, invitations, slug routing, active workspace
+context, module permissions, and the Workspace UI are documented in
+[`ORGANIZATION_WORKSPACE.md`](./ORGANIZATION_WORKSPACE.md).
+
 ## Architecture
 
 The NestJS API is the authority for authentication and authorization. The
@@ -16,7 +20,9 @@ header for unsafe methods in `CsrfGuard`, and applies a global throttler.
 
 - `User` stores a normalized, unique email, an Argon2id password hash, email
   verification state, and a platform role.
-- `Organization` is a tenant.
+- `Organization` is a tenant with a unique workspace slug, contact details,
+  active/deactivated state, module settings, invitations, and persisted
+  organization activity.
 - `OrganizationMembership` joins users and organizations, with an
   organization-specific role and module-permission list. A user can have
   memberships in multiple organizations.
@@ -26,20 +32,22 @@ header for unsafe methods in `CsrfGuard`, and applies a global throttler.
   password-reset tokens with expiry and consumption state.
 
 Users do not gain platform administrator privileges through registration.
-Organization endpoints require a membership for the requested organization;
-the API does not trust an organization ID or permission list as proof of
-membership. The MVP currently exposes organization lookup only. Platform admin
-and module permission guards/decorators are available for protected routes,
-but no platform-admin or module-business endpoints are implemented.
+Organization endpoints require an active membership for the requested slug
+or legacy organization UUID; the API does not trust a route value or a client
+permission list as proof of membership. Module access is checked against the
+stored organization module state and membership permissions. Platform admin
+privileges remain separate from organization roles.
 
 ## Registration and email verification
 
-Registration validates an email, a 12–128 character password, and an
-organization name. It lowercases and trims the email, hashes the password
-using Argon2id, and creates the user, initial organization, owner membership,
-and verification token in one database transaction. The token is generated
-from 32 cryptographically random bytes; only its SHA-256 hash is stored. The
-verification token expires after 24 hours and can be used once.
+Registration validates an email and a 12–128 character password. It
+lowercases and trims the email, hashes the password using Argon2id, and creates
+the user and verification token in one database transaction. The token is
+generated from 32 cryptographically random bytes; only its SHA-256 hash is
+stored. The verification token expires after 24 hours and can be used once.
+After email verification and sign-in, users without an active organization go
+through onboarding. Organization creation then atomically creates the tenant,
+its Owner membership, module settings, and an activity event.
 
 The verification URL carries the action token in a URL fragment. The browser
 reads the fragment, removes it from the visible URL, and posts the token to the
@@ -106,23 +114,24 @@ instances should use shared throttler storage or an edge rate limiter.
 
 ## API endpoints
 
-| Method   | Endpoint                         | Access                  | Purpose                                           |
-| -------- | -------------------------------- | ----------------------- | ------------------------------------------------- |
-| `POST`   | `/auth/register`                 | Public, rate-limited    | Register user and initial organization            |
-| `POST`   | `/auth/resend-verification`      | Public, rate-limited    | Request a verification link                       |
-| `POST`   | `/auth/verify-email`             | Public, rate-limited    | Consume a verification token                      |
-| `POST`   | `/auth/login`                    | Public, rate-limited    | Create a session and set cookie                   |
-| `POST`   | `/auth/logout`                   | Public, CSRF-protected  | Revoke cookie session if present and clear cookie |
-| `GET`    | `/auth/me`                       | Session                 | Return the authenticated profile                  |
-| `GET`    | `/auth/sessions`                 | Session                 | List the user's active sessions                   |
-| `DELETE` | `/auth/sessions/:sessionId`      | Session                 | Revoke one of the user's sessions                 |
-| `POST`   | `/auth/logout-all`               | Session, CSRF-protected | Revoke all of the user's sessions                 |
-| `POST`   | `/auth/forgot-password`          | Public, rate-limited    | Request a password-reset link                     |
-| `POST`   | `/auth/reset-password`           | Public, rate-limited    | Consume a reset token and change password         |
-| `GET`    | `/organizations/:organizationId` | Session and membership  | Read an organization the user belongs to          |
+| Method   | Endpoint                    | Access                  | Purpose                                           |
+| -------- | --------------------------- | ----------------------- | ------------------------------------------------- |
+| `POST`   | `/auth/register`            | Public, rate-limited    | Register user and initial organization            |
+| `POST`   | `/auth/resend-verification` | Public, rate-limited    | Request a verification link                       |
+| `POST`   | `/auth/verify-email`        | Public, rate-limited    | Consume a verification token                      |
+| `POST`   | `/auth/login`               | Public, rate-limited    | Create a session and set cookie                   |
+| `POST`   | `/auth/logout`              | Public, CSRF-protected  | Revoke cookie session if present and clear cookie |
+| `GET`    | `/auth/me`                  | Session                 | Return the authenticated profile                  |
+| `GET`    | `/auth/sessions`            | Session                 | List the user's active sessions                   |
+| `DELETE` | `/auth/sessions/:sessionId` | Session                 | Revoke one of the user's sessions                 |
+| `POST`   | `/auth/logout-all`          | Session, CSRF-protected | Revoke all of the user's sessions                 |
+| `POST`   | `/auth/forgot-password`     | Public, rate-limited    | Request a password-reset link                     |
+| `POST`   | `/auth/reset-password`      | Public, rate-limited    | Consume a reset token and change password         |
+| `GET`    | `/organizations/:slug`      | Session and membership  | Read an organization dashboard                    |
+| `POST`   | `/organizations`            | Session, verified user  | Create an organization during onboarding          |
 
 The browser uses same-origin BFF routes at `/api/auth/*` and
-`/api/organizations/:organizationId`. The BFF forwards the session cookie
+`/api/organizations/*`. The BFF forwards the session cookie
 server-to-server and disables caching for authenticated responses.
 
 ## Environment and email

@@ -10,6 +10,7 @@ import {
 import { OrganizationAccessGuard } from './organization-access.guard.js';
 import { PlatformAdminGuard } from './platform-admin.guard.js';
 import { OrganizationMembership } from '../../organizations/organization-membership.entity.js';
+import { Organization } from '../../organizations/organization.entity.js';
 
 type GuardRequest = {
   params?: { organizationId: string };
@@ -22,10 +23,16 @@ describe('authorization guards', () => {
   let organizationGuard: OrganizationAccessGuard;
   let platformAdminGuard: PlatformAdminGuard;
   const membershipRepository = { findOne: vi.fn() };
+  const organizationRepository = { findOne: vi.fn() };
   const handler = () => undefined;
 
   beforeEach(async () => {
     membershipRepository.findOne.mockReset();
+    organizationRepository.findOne.mockReset();
+    organizationRepository.findOne.mockResolvedValue({
+      id: 'organization-a',
+      isActive: true,
+    });
     moduleFixture = await Test.createTestingModule({
       providers: [
         OrganizationAccessGuard,
@@ -33,6 +40,10 @@ describe('authorization guards', () => {
         {
           provide: getRepositoryToken(OrganizationMembership),
           useValue: membershipRepository,
+        },
+        {
+          provide: getRepositoryToken(Organization),
+          useValue: organizationRepository,
         },
       ],
     }).compile();
@@ -108,6 +119,14 @@ describe('authorization guards', () => {
       userId: 'user-a',
       organizationId: 'organization-a',
       role: 'owner',
+      permissions: [],
+    });
+    await expect(organizationGuard.canActivate(context)).resolves.toBe(true);
+
+    membershipRepository.findOne.mockResolvedValue({
+      userId: 'user-a',
+      organizationId: 'organization-a',
+      role: 'member',
       permissions: [],
     });
     await expect(organizationGuard.canActivate(context)).rejects.toBeInstanceOf(
