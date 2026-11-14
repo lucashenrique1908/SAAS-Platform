@@ -19,6 +19,7 @@ describe('Authentication and authorization (e2e)', () => {
   const deliveredTokens = {
     verification: [] as string[],
     reset: [] as string[],
+    invitations: [] as Array<{ email: string; token: string }>,
   };
   let shouldFailEmailDelivery = false;
 
@@ -35,6 +36,14 @@ describe('Authentication and authorization (e2e)', () => {
       }
       deliveredTokens.reset.push(token);
     }),
+    sendOrganizationInvitationEmail: vi.fn(
+      async (email: string, token: string) => {
+        if (shouldFailEmailDelivery) {
+          throw new ServiceUnavailableException('simulated provider outage');
+        }
+        deliveredTokens.invitations.push({ email, token });
+      },
+    ),
   };
 
   beforeAll(async () => {
@@ -63,8 +72,10 @@ describe('Authentication and authorization (e2e)', () => {
     shouldFailEmailDelivery = false;
     deliveredTokens.verification.length = 0;
     deliveredTokens.reset.length = 0;
+    deliveredTokens.invitations.length = 0;
     emailProvider.sendVerificationEmail.mockClear();
     emailProvider.sendPasswordResetEmail.mockClear();
+    emailProvider.sendOrganizationInvitationEmail.mockClear();
     await dataSource.query(
       'TRUNCATE "auth_action_tokens", "auth_sessions", "organization_memberships", "organizations", "users" CASCADE',
     );
@@ -86,7 +97,6 @@ describe('Authentication and authorization (e2e)', () => {
     return withCsrf(request(app.getHttpServer()).post('/auth/register')).send({
       email,
       password,
-      organizationName: 'Example Workspace',
     });
   }
 
@@ -109,6 +119,9 @@ describe('Authentication and authorization (e2e)', () => {
       password: validPassword,
     });
     expect(login.status).toBe(200);
+    await withCsrf(agent.post('/organizations'))
+      .send({ name: 'Example Workspace' })
+      .expect(201);
     return agent;
   }
 
@@ -148,7 +161,6 @@ describe('Authentication and authorization (e2e)', () => {
     ).send({
       email: 'not-an-email',
       password: 'short',
-      organizationName: 'A',
       platformRole: 'platform_admin',
     });
     expect(invalid.status).toBe(400);
@@ -160,7 +172,6 @@ describe('Authentication and authorization (e2e)', () => {
       .send({
         email: 'user@example.test',
         password: validPassword,
-        organizationName: 'Workspace',
       });
     expect(untrusted.status).toBe(403);
   });
@@ -221,8 +232,7 @@ describe('Authentication and authorization (e2e)', () => {
 
     const profile = await agent.get('/auth/me').expect(200);
     expect(profile.body.email).toBe('login@example.test');
-    expect(profile.body.memberships).toHaveLength(1);
-    expect(profile.body.memberships[0].role).toBe('owner');
+    expect(profile.body.memberships).toHaveLength(0);
     expect(profile.body).not.toHaveProperty('passwordHash');
   });
 
@@ -431,17 +441,20 @@ describe('Authentication and authorization (e2e)', () => {
   it('isolates organization access by membership and role', async () => {
     const owner = await createVerifiedUser('owner@example.test');
     const ownerProfile = await owner.get('/auth/me').expect(200);
-    const organizationId = ownerProfile.body.memberships[0]
-      .organizationId as string;
-    await owner.get(`/organizations/${organizationId}`).expect(200);
+    const organizationSlug = ownerProfile.body.memberships[0]
+      .organizationSlug as string;
+    await owner.get(`/organizations/${organizationSlug}`).expect(200);
 
     const otherUser = await createVerifiedUser('outsider@example.test');
-    await otherUser.get(`/organizations/${organizationId}`).expect(404);
+    await otherUser.get(`/organizations/${organizationSlug}`).expect(404);
 
     const membership = await dataSource
       .getRepository(OrganizationMembership)
       .findOne({
-        where: { userId: ownerProfile.body.id, organizationId },
+        where: {
+          userId: ownerProfile.body.id,
+          organizationId: ownerProfile.body.memberships[0].organizationId,
+        },
       });
     expect(membership?.role).toBe('owner');
   });
@@ -485,5 +498,294 @@ describe('Authentication and authorization (e2e)', () => {
     await verify(deliveredTokens.verification[2]!).then((response) =>
       expect(response.status).toBe(200),
     );
+  });
+
+  it('creates organizations during onboarding with unique normalized slugs', async () => {
+    const owner = await createVerifiedUser('workspace-owner@example.test');
+    const first = await withCsrf(owner.post('/organizations'))
+      .send({
+        name: 'Ação Café',
+        country: 'PT',
+        contactEmail: 'office@example.test',
+      })
+      .expect(201);
+    expect(first.body.slug).toBe('acao-cafe');
+    expect(first.body.contactEmail).toBe('office@example.test');
+
+    const second = await withCsrf(owner.post('/organizations'))
+      .send({ name: 'Ação Café' })
+      .expect(201);
+    expect(second.body.slug).toBe('acao-cafe-2');
+    const profile = await owner.get('/auth/me').expect(200);
+    expect(profile.body.memberships).toHaveLength(3);
+    expect(
+      profile.body.memberships.every(
+        (item: { role: string }) => item.role === 'owner',
+      ),
+    ).toBe(true);
+    const workspace = await owner
+      .get(`/organizations/${first.body.slug}`)
+      .expect(200);
+    expect(workspace.body.membersCount).toBe(1);
+    expect(
+      workspace.body.activity.map((item: { type: string }) => item.type),
+    ).toContain('organization.created');
+  });
+
+  it('requires explicit slug confirmation and prevents slug collisions', async () => {
+    const owner = await createVerifiedUser('slug-owner@example.test');
+    const created = await withCsrf(owner.post('/organizations'))
+      .send({ name: 'Original Team' })
+      .expect(201);
+    await withCsrf(owner.patch(`/organizations/${created.body.slug}`))
+      .send({ slug: 'next-team' })
+      .expect(400);
+
+    await withCsrf(owner.post('/organizations'))
+      .send({ name: 'Next Team' })
+      .expect(201);
+    const collision = await withCsrf(
+      owner.patch(`/organizations/${created.body.slug}`),
+    )
+      .send({ slug: 'next-team', confirmSlugChange: true })
+      .expect(409);
+    expect(collision.body.suggestions).toContain('next-team-2');
+
+    const renamed = await withCsrf(
+      owner.patch(`/organizations/${created.body.slug}`),
+    )
+      .send({
+        name: 'Renamed Team',
+        slug: 'renamed-team',
+        confirmSlugChange: true,
+      })
+      .expect(200);
+    expect(renamed.body.slug).toBe('renamed-team');
+    await owner.get(`/organizations/${created.body.slug}`).expect(404);
+    await owner.get('/organizations/renamed-team').expect(200);
+  });
+
+  it('enforces distinct Owner, Admin, and Member organization permissions', async () => {
+    const owner = await createVerifiedUser('roles-owner@example.test');
+    const admin = await createVerifiedUser('roles-admin@example.test');
+    const member = await createVerifiedUser('roles-member@example.test');
+    const ownerProfile = await owner.get('/auth/me').expect(200);
+    const slug = ownerProfile.body.memberships[0].organizationSlug as string;
+    const adminId = (await admin.get('/auth/me').expect(200)).body.id as string;
+    const memberId = (await member.get('/auth/me').expect(200)).body
+      .id as string;
+
+    await withCsrf(owner.post(`/organizations/${slug}/members`))
+      .send({ email: 'roles-admin@example.test', role: 'admin' })
+      .expect(201);
+    await withCsrf(owner.post(`/organizations/${slug}/members`))
+      .send({ email: 'roles-member@example.test', role: 'member' })
+      .expect(201);
+
+    await withCsrf(admin.patch(`/organizations/${slug}`))
+      .send({ description: 'Managed by an admin.' })
+      .expect(200);
+    await withCsrf(admin.patch(`/organizations/${slug}`))
+      .send({ name: 'Unauthorized rename' })
+      .expect(403);
+    await withCsrf(admin.post(`/organizations/${slug}/invitations`))
+      .send({ email: 'owner-role@example.test', role: 'owner' })
+      .expect(403);
+    await withCsrf(admin.post(`/organizations/${slug}/invitations`))
+      .send({ email: 'admin-role@example.test', role: 'admin' })
+      .expect(403);
+    await withCsrf(
+      admin.delete(`/organizations/${slug}/members/${adminId}`),
+    ).expect(403);
+    await withCsrf(
+      admin.delete(`/organizations/${slug}/members/${memberId}`),
+    ).expect(200);
+    await withCsrf(
+      owner.patch(`/organizations/${slug}/members/${adminId}/role`),
+    )
+      .send({ role: 'member' })
+      .expect(200);
+    await withCsrf(
+      owner.patch(`/organizations/${slug}/members/${adminId}/permissions`),
+    )
+      .send({ permissions: ['developer:read'] })
+      .expect(200);
+  });
+
+  it('stores invitations as hashes, binds acceptance to a verified email, and allows one use', async () => {
+    const owner = await createVerifiedUser('invite-owner@example.test');
+    const invitee = await createVerifiedUser('invitee@example.test');
+    const unrelated = await createVerifiedUser('unrelated@example.test');
+    const slug = (await owner.get('/auth/me').expect(200)).body.memberships[0]
+      .organizationSlug as string;
+    const invitation = await withCsrf(
+      owner.post(`/organizations/${slug}/invitations`),
+    )
+      .send({ email: 'invitee@example.test', role: 'member' })
+      .expect(201);
+    const token = deliveredTokens.invitations.at(-1)!.token;
+    expect(deliveredTokens.invitations.at(-1)!.email).toBe(
+      'invitee@example.test',
+    );
+    const rows = await dataSource.query(
+      'SELECT token_hash, expires_at, created_at FROM organization_invitations WHERE id = $1',
+      [invitation.body.id],
+    );
+    expect(rows[0].token_hash.trim()).toBe(hashOpaqueToken(token));
+    expect(rows[0].token_hash.trim()).not.toBe(token);
+    expect(
+      new Date(rows[0].expires_at).getTime() -
+        new Date(rows[0].created_at).getTime(),
+    ).toBeGreaterThan(71 * 60 * 60 * 1000);
+
+    await withCsrf(unrelated.post('/organizations/invitations/accept'))
+      .send({ token })
+      .expect(403);
+    const accepted = await withCsrf(
+      invitee.post('/organizations/invitations/accept'),
+    )
+      .send({ token })
+      .expect(201);
+    expect(accepted.body.organization.slug).toBe(slug);
+    await withCsrf(invitee.post('/organizations/invitations/accept'))
+      .send({ token })
+      .expect(400);
+    const acceptedMember = await invitee
+      .get(`/organizations/${slug}`)
+      .expect(200);
+    expect(acceptedMember.body.role).toBe('member');
+  });
+
+  it('expires and revokes invitations and rejects acceptance without verified email', async () => {
+    const owner = await createVerifiedUser(
+      'invite-lifecycle-owner@example.test',
+    );
+    const invitee = await createVerifiedUser(
+      'invite-lifecycle-user@example.test',
+    );
+    const slug = (await owner.get('/auth/me').expect(200)).body.memberships[0]
+      .organizationSlug as string;
+    const expired = await withCsrf(
+      owner.post(`/organizations/${slug}/invitations`),
+    )
+      .send({ email: 'invite-lifecycle-user@example.test', role: 'member' })
+      .expect(201);
+    const expiredToken = deliveredTokens.invitations.at(-1)!.token;
+    await dataSource.query(
+      "UPDATE organization_invitations SET expires_at = NOW() - INTERVAL '1 second' WHERE id = $1",
+      [expired.body.id],
+    );
+    await withCsrf(invitee.post('/organizations/invitations/accept'))
+      .send({ token: expiredToken })
+      .expect(400);
+
+    const revoked = await withCsrf(
+      owner.post(`/organizations/${slug}/invitations`),
+    )
+      .send({ email: 'invite-lifecycle-user@example.test', role: 'member' })
+      .expect(201);
+    const revokedToken = deliveredTokens.invitations.at(-1)!.token;
+    await withCsrf(
+      owner.delete(`/organizations/${slug}/invitations/${revoked.body.id}`),
+    ).expect(200);
+    await withCsrf(invitee.post('/organizations/invitations/accept'))
+      .send({ token: revokedToken })
+      .expect(400);
+  });
+
+  it('transfers ownership transactionally and protects the last Owner', async () => {
+    const owner = await createVerifiedUser('transfer-owner@example.test');
+    const nextOwner = await createVerifiedUser('transfer-next@example.test');
+    const slug = (await owner.get('/auth/me').expect(200)).body.memberships[0]
+      .organizationSlug as string;
+    const nextOwnerId = (await nextOwner.get('/auth/me').expect(200)).body
+      .id as string;
+    await withCsrf(owner.post(`/organizations/${slug}/members`))
+      .send({ email: 'transfer-next@example.test', role: 'member' })
+      .expect(201);
+    await withCsrf(owner.post(`/organizations/${slug}/ownership/transfer`))
+      .send({ userId: nextOwnerId })
+      .expect(201);
+    expect(
+      (await owner.get(`/organizations/${slug}`).expect(200)).body.role,
+    ).toBe('admin');
+    expect(
+      (await nextOwner.get(`/organizations/${slug}`).expect(200)).body.role,
+    ).toBe('owner');
+    await withCsrf(
+      nextOwner.patch(`/organizations/${slug}/members/${nextOwnerId}/role`),
+    )
+      .send({ role: 'member' })
+      .expect(409);
+    await withCsrf(
+      owner.post(`/organizations/${slug}/members/me/leave`),
+    ).expect(200);
+
+    const soleOwner = await createVerifiedUser('sole-owner@example.test');
+    const soleSlug = (await soleOwner.get('/auth/me').expect(200)).body
+      .memberships[0].organizationSlug as string;
+    const soleId = (await soleOwner.get('/auth/me').expect(200)).body
+      .id as string;
+    await withCsrf(
+      soleOwner.post(`/organizations/${soleSlug}/members/me/leave`),
+    ).expect(409);
+    await withCsrf(
+      soleOwner.patch(`/organizations/${soleSlug}/members/${soleId}/role`),
+    )
+      .send({ role: 'member' })
+      .expect(409);
+  });
+
+  it('checks module activation and per-member read permissions on the API', async () => {
+    const owner = await createVerifiedUser('modules-owner@example.test');
+    const member = await createVerifiedUser('modules-member@example.test');
+    const slug = (await owner.get('/auth/me').expect(200)).body.memberships[0]
+      .organizationSlug as string;
+    const memberId = (await member.get('/auth/me').expect(200)).body
+      .id as string;
+    await withCsrf(owner.post(`/organizations/${slug}/members`))
+      .send({ email: 'modules-member@example.test', role: 'member' })
+      .expect(201);
+    await member.get(`/organizations/${slug}/modules/dentist`).expect(404);
+    await withCsrf(owner.patch(`/organizations/${slug}/modules`))
+      .send({ key: 'dentist', enabled: true })
+      .expect(200);
+    await member.get(`/organizations/${slug}/modules/dentist`).expect(403);
+    await withCsrf(
+      owner.patch(`/organizations/${slug}/members/${memberId}/permissions`),
+    )
+      .send({ permissions: ['dentist:read'] })
+      .expect(200);
+    await member.get(`/organizations/${slug}/modules/dentist`).expect(200);
+    await withCsrf(owner.patch(`/organizations/${slug}/modules`))
+      .send({ key: 'dentist', enabled: false })
+      .expect(200);
+    await member.get(`/organizations/${slug}/modules/dentist`).expect(404);
+  });
+
+  it('deactivates and reactivates organizations and requires explicit deletion confirmation', async () => {
+    const owner = await createVerifiedUser('lifecycle-owner@example.test');
+    const slug = (await owner.get('/auth/me').expect(200)).body.memberships[0]
+      .organizationSlug as string;
+    await withCsrf(owner.patch(`/organizations/${slug}/deactivate`)).expect(
+      200,
+    );
+    await owner.get(`/organizations/${slug}`).expect(404);
+    await withCsrf(owner.patch(`/organizations/${slug}/reactivate`)).expect(
+      200,
+    );
+    await owner.get(`/organizations/${slug}`).expect(200);
+    await withCsrf(owner.delete(`/organizations/${slug}`))
+      .send({ confirmName: 'wrong name' })
+      .expect(400);
+    await withCsrf(owner.delete(`/organizations/${slug}`))
+      .send({ confirmName: 'Example Workspace' })
+      .expect(200);
+    await owner.get(`/organizations/${slug}`).expect(404);
+    const remaining = await dataSource.query(
+      'SELECT id FROM organizations WHERE slug = $1',
+      [slug],
+    );
+    expect(remaining).toHaveLength(0);
   });
 });

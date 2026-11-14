@@ -30,7 +30,24 @@ export default function LoginPage() {
             method: "POST",
             body: JSON.stringify(values),
           });
-          router.push("/profile");
+          if (sessionStorage.getItem("saas_invitation_token")) {
+            router.push("/invite/accept");
+          } else {
+            const profile = await authRequest<{
+              memberships: Array<{ organizationSlug: string }>;
+              activeOrganizationSlug: string | null;
+            }>("me");
+            if (profile.memberships.length === 0) {
+              router.push("/onboarding");
+            } else {
+              const organization =
+                profile.memberships.find(
+                  (item) =>
+                    item.organizationSlug === profile.activeOrganizationSlug,
+                ) ?? profile.memberships[0]!;
+              router.push(`/workspace/${organization.organizationSlug}`);
+            }
+          }
           router.refresh();
           return "Signed in.";
         }}

@@ -10,8 +10,13 @@ export type ProfileData = {
   memberships: Array<{
     organizationId: string;
     organizationName: string;
+    organizationSlug: string;
+    logoUrl: string | null;
+    isActive: boolean;
     role: "owner" | "admin" | "member";
+    permissions: string[];
   }>;
+  activeOrganizationSlug: string | null;
 };
 
 export type SessionData = {

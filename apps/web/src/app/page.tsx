@@ -1,6 +1,38 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { redirect } from "next/navigation";
+import { connection } from "next/server";
+import { getServerAuthData } from "@/lib/auth-session";
 
 export default function Home() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex flex-1 items-center justify-center px-6 py-24">
+          <p role="status">Loading workspace...</p>
+        </main>
+      }
+    >
+      <HomeContent />
+    </Suspense>
+  );
+}
+
+async function HomeContent() {
+  await connection();
+  const authData = await getServerAuthData();
+  if (authData) {
+    const { activeOrganizationSlug } = authData.profile;
+    const memberships = authData.profile.memberships.filter(
+      (item) => item.isActive,
+    );
+    if (memberships.length === 0) redirect("/onboarding");
+    const organization =
+      memberships.find(
+        (item) => item.organizationSlug === activeOrganizationSlug,
+      ) ?? memberships[0]!;
+    redirect(`/workspace/${organization.organizationSlug}`);
+  }
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-24 text-center">
       <h1 className="text-4xl font-semibold tracking-tight">SaaS Platform</h1>

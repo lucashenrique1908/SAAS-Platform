@@ -22,8 +22,6 @@ import {
 } from './auth-action-token.entity.js';
 import { hashOpaqueToken } from './auth-token.utils.js';
 import { TransactionalEmailService } from './transactional-email.service.js';
-import { Organization } from '../organizations/organization.entity.js';
-import { OrganizationMembership } from '../organizations/organization-membership.entity.js';
 import { AuthSession } from '../sessions/auth-session.entity.js';
 import { SessionsService } from '../sessions/sessions.service.js';
 import { User } from '../users/user.entity.js';
@@ -65,8 +63,6 @@ export class AuthService {
     try {
       await this.dataSource.transaction(async (manager) => {
         const users = manager.getRepository(User);
-        const organizations = manager.getRepository(Organization);
-        const memberships = manager.getRepository(OrganizationMembership);
         const user = await users.save(
           users.create({
             email,
@@ -74,17 +70,6 @@ export class AuthService {
             emailVerifiedAt: null,
             platformRole: 'none',
             isActive: true,
-          }),
-        );
-        const organization = await organizations.save(
-          organizations.create({ name: input.organizationName.trim() }),
-        );
-        await memberships.save(
-          memberships.create({
-            userId: user.id,
-            organizationId: organization.id,
-            role: 'owner',
-            permissions: [],
           }),
         );
         await this.createActionToken(
@@ -265,7 +250,7 @@ export class AuthService {
     return { message: 'Password reset. Please sign in again.' };
   }
 
-  async getProfile(userId: string) {
+  async getProfile(userId: string, activeOrganizationId?: string | null) {
     const user = await this.users.findOne({
       where: { id: userId },
       relations: { memberships: { organization: true } },
@@ -281,8 +266,19 @@ export class AuthService {
       memberships: user.memberships.map((membership) => ({
         organizationId: membership.organizationId,
         organizationName: membership.organization.name,
+        organizationSlug: membership.organization.slug,
+        logoUrl: membership.organization.logoUrl,
+        isActive: membership.organization.isActive,
         role: membership.role,
+        permissions: membership.permissions,
       })),
+      activeOrganizationSlug: activeOrganizationId
+        ? (user.memberships.find(
+            (membership) =>
+              membership.organization.isActive &&
+              membership.organizationId === activeOrganizationId,
+          )?.organization.slug ?? null)
+        : null,
     };
   }
 

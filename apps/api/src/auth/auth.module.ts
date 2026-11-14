@@ -28,6 +28,11 @@ import { SessionAuthGuard } from './guards/session-auth.guard.js';
     SessionsService,
     TransactionalEmailService,
   ],
-  exports: [AuthService, SessionAuthGuard, SessionsService],
+  exports: [
+    AuthService,
+    SessionAuthGuard,
+    SessionsService,
+    TransactionalEmailService,
+  ],
 })
 export class AuthModule {}

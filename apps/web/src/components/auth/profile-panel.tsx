@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authRequest } from "@/lib/auth-api";
+import { organizationRequest } from "@/lib/auth-api";
+import Link from "next/link";
 import type { ProfileData, SessionData } from "@/lib/auth-session";
 
 export function ProfilePanel({
@@ -67,6 +69,26 @@ export function ProfilePanel({
     }
   }
 
+  async function reactivate(slug: string) {
+    setBusy(true);
+    setError("");
+    try {
+      await organizationRequest(`${encodeURIComponent(slug)}/reactivate`, {
+        method: "PATCH",
+      });
+      router.push(`/workspace/${slug}`);
+      router.refresh();
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "Could not reactivate the organization.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-12">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -89,13 +111,33 @@ export function ProfilePanel({
         <ul className="mt-3 space-y-2">
           {profile.memberships.map((membership) => (
             <li
-              className="flex justify-between rounded-md border p-3"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3"
               key={membership.organizationId}
             >
-              <span>{membership.organizationName}</span>
-              <span className="text-sm text-muted-foreground">
-                {membership.role}
-              </span>
+              <div>
+                <p className="font-medium">{membership.organizationName}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {membership.role}
+                  {membership.isActive ? " · Active" : " · Deactivated"}
+                </p>
+              </div>
+              {membership.isActive ? (
+                <Link
+                  className="rounded-md border px-3 py-2 text-sm"
+                  href={`/workspace/${membership.organizationSlug}`}
+                >
+                  Open workspace
+                </Link>
+              ) : membership.role === "owner" ? (
+                <button
+                  className="rounded-md border px-3 py-2 text-sm"
+                  disabled={busy}
+                  onClick={() => void reactivate(membership.organizationSlug)}
+                  type="button"
+                >
+                  Reactivate
+                </button>
+              ) : null}
             </li>
           ))}
         </ul>

@@ -9,9 +9,4 @@ export class RegisterDto {
   @MinLength(12)
   @MaxLength(128)
   password!: string;
-
-  @IsString()
-  @MinLength(2)
-  @MaxLength(120)
-  organizationName!: string;
 }

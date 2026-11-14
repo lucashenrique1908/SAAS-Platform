@@ -3,20 +3,22 @@
 import { AuthForm } from "@/components/auth/auth-form";
 import { AuthLinks } from "@/components/auth/auth-links";
 import { authRequest } from "@/lib/auth-api";
+import { useEffect } from "react";
+import { getActionTokenFromHash } from "@/lib/auth-api";
 
 export default function RegisterPage() {
+  useEffect(() => {
+    const token = getActionTokenFromHash(window.location.hash);
+    if (token) {
+      sessionStorage.setItem("saas_invitation_token", token);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-12">
       <AuthForm
-        description="Create an account and your first organization."
+        description="Create an account, verify your email, then set up your first workspace."
         fields={[
-          {
-            name: "organizationName",
-            label: "Organization name",
-            type: "text",
-            autoComplete: "organization",
-            minLength: 2,
-          },
           {
             name: "email",
             label: "Email",

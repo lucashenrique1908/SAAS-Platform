@@ -16,6 +16,7 @@ import {
 } from '../decorators/authorization.decorator.js';
 import type { OrganizationRole } from '../../organizations/organization-membership.entity.js';
 import { OrganizationMembership } from '../../organizations/organization-membership.entity.js';
+import { Organization } from '../../organizations/organization.entity.js';
 
 @Injectable()
 export class OrganizationAccessGuard implements CanActivate {
@@ -23,18 +24,32 @@ export class OrganizationAccessGuard implements CanActivate {
     private readonly reflector: Reflector,
     @InjectRepository(OrganizationMembership)
     private readonly memberships: Repository<OrganizationMembership>,
+    @InjectRepository(Organization)
+    private readonly organizations: Repository<Organization>,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const user = request.authUser;
-    const organizationId = request.params.organizationId;
-    if (!user || typeof organizationId !== 'string') {
+    const organizationRef =
+      request.params.organizationId ?? request.params.slug;
+    if (!user || typeof organizationRef !== 'string') {
       throw new NotFoundException('Organization not found.');
     }
 
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        organizationRef,
+      );
+    const organization = await this.organizations.findOne({
+      where: isUuid
+        ? { id: organizationRef, isActive: true }
+        : { slug: organizationRef, isActive: true },
+    });
+    if (!organization) throw new NotFoundException('Organization not found.');
+
     const membership = await this.memberships.findOne({
-      where: { userId: user.id, organizationId },
+      where: { userId: user.id, organizationId: organization.id },
     });
     if (!membership) {
       throw new NotFoundException('Organization not found.');
@@ -54,6 +69,7 @@ export class OrganizationAccessGuard implements CanActivate {
     );
     if (
       permissions?.length &&
+      !['owner', 'admin'].includes(membership.role) &&
       !permissions.every((permission) =>
         membership.permissions.includes(permission),
       )
@@ -62,6 +78,7 @@ export class OrganizationAccessGuard implements CanActivate {
     }
 
     request.organizationMembership = membership;
+    request.organization = organization;
     return true;
   }
 }
