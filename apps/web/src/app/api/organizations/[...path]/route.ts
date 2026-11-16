@@ -89,6 +89,10 @@ export function PATCH(request: Request, context: RouteContext) {
   return forwardOrganizationRequest(request, context);
 }
 
+export function PUT(request: Request, context: RouteContext) {
+  return forwardOrganizationRequest(request, context);
+}
+
 export function DELETE(request: Request, context: RouteContext) {
   return forwardOrganizationRequest(request, context);
 }

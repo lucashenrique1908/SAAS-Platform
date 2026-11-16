@@ -54,16 +54,46 @@ export function ResetPasswordFlow() {
           title="Set a new password"
         />
       ) : completed ? (
-        <section className="w-full max-w-md rounded-xl border bg-card p-8 shadow-sm">
-          <h1 className="text-2xl font-semibold">Password updated</h1>
-          <p className="mt-4" role="status">
+        <section className="w-full max-w-md rounded-[1.75rem] border border-border/80 bg-card/90 p-6 shadow-[0_30px_70px_rgba(15,23,42,0.12)] backdrop-blur-sm sm:p-8">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500 text-base font-semibold text-white shadow-sm shadow-emerald-500/25">
+              ✓
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Security
+              </p>
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                Password updated
+              </h1>
+            </div>
+          </div>
+          <p
+            className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-sm font-medium text-emerald-700 dark:text-emerald-300"
+            role="status"
+          >
             Your password has been reset. Sign in with your new password.
           </p>
         </section>
       ) : (
-        <section className="w-full max-w-md rounded-xl border bg-card p-8 shadow-sm">
-          <h1 className="text-2xl font-semibold">Reset your password</h1>
-          <p className="mt-4" role="status">
+        <section className="w-full max-w-md rounded-[1.75rem] border border-border/80 bg-card/90 p-6 shadow-[0_30px_70px_rgba(15,23,42,0.12)] backdrop-blur-sm sm:p-8">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-base font-semibold text-primary-foreground shadow-sm shadow-primary/25">
+              🔒
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Security
+              </p>
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                Reset your password
+              </h1>
+            </div>
+          </div>
+          <p
+            className="rounded-xl border border-primary/15 bg-primary/5 px-3 py-2 text-sm font-medium text-muted-foreground"
+            role="status"
+          >
             Open the password reset link from your email to continue.
           </p>
         </section>

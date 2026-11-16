@@ -70,6 +70,35 @@ export async function organizationRequest<T>(
   return payload as T;
 }
 
+export async function organizationUpload<T>(
+  path: string,
+  file: File,
+): Promise<T> {
+  const form = new FormData();
+  form.set("file", file);
+  const response = await fetch(`/api/organizations/${path}`, {
+    method: "POST",
+    body: form,
+    headers: { "X-CSRF-Protection": "1" },
+    credentials: "same-origin",
+    cache: "no-store",
+  });
+  const payload: unknown = await response.json();
+  if (!response.ok) {
+    const message =
+      typeof payload === "object" &&
+      payload !== null &&
+      "message" in payload &&
+      typeof payload.message === "string"
+        ? payload.message
+        : "The upload could not be completed.";
+    const error = new Error(message) as AuthApiError;
+    error.status = response.status;
+    throw error;
+  }
+  return payload as T;
+}
+
 export function getActionTokenFromHash(hash: string): string | null {
   const params = new URLSearchParams(hash.replace(/^#/, ""));
   return params.get("token");

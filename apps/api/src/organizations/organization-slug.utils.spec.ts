@@ -36,10 +36,11 @@ function slugifyAsMigration(name: string): string {
   let slug = name.toLowerCase();
   for (const [from, to] of replacements) slug = slug.split(from).join(to);
   if (translateFrom && translateTo) {
-    const destination = [...translateTo];
-    slug = [...slug]
+    const destination = Array.from(translateTo);
+    const source = Array.from(translateFrom);
+    slug = Array.from(slug)
       .map((character) => {
-        const index = [...translateFrom].indexOf(character);
+        const index = source.indexOf(character);
         return index < 0 ? character : (destination[index] ?? '');
       })
       .join('');

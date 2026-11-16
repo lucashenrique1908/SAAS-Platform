@@ -27,3 +27,7 @@ Sprint 1 — Authentication & Authorization.
 Sprint 2 — Organization & Workspace Management está implementada; consulte
 [`docs/ORGANIZATION_WORKSPACE.md`](docs/ORGANIZATION_WORKSPACE.md) para a
 arquitetura, os endpoints e a validação local.
+
+Sprint 3 — Developer Module está em implementação; consulte
+[`docs/DEVELOPER_MODULE.md`](docs/DEVELOPER_MODULE.md) para arquitetura,
+permissões, integrações e limitações atuais.

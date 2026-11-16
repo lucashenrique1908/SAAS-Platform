@@ -17,6 +17,7 @@ import { SessionAuthGuard } from './auth/guards/session-auth.guard.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { OrganizationsModule } from './organizations/organizations.module.js';
+import { DevelopersModule } from './developers/developers.module.js';
 import {
   shouldLoadLocalEnvFile,
   validatePostgresEnvironment,
@@ -62,6 +63,7 @@ import {
     }),
     AuthModule,
     OrganizationsModule,
+    DevelopersModule,
   ],
   controllers: [AppController],
   providers: [
