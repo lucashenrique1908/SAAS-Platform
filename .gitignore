@@ -3,10 +3,27 @@ node_modules/
 dist/
 build/
 coverage/
+apps/api/var/
 
 .env
 .env.*
 !.env.example
 
+# Local credentials and private keys
+secrets/
+credentials.json
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Local code review notes
+code-review-tarefa-6.txt
+code-review-corrigido.txt
+review-final.txt
+
 *.log
 .DS_Store
+*.tsbuildinfo
