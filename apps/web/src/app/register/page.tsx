@@ -15,7 +15,7 @@ export default function RegisterPage() {
     }
   }, []);
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-6 py-12">
+    <main className="flex w-full min-w-0 flex-1 flex-col items-center justify-center px-6 py-12">
       <AuthForm
         description="Create an account, verify your email, then set up your first workspace."
         fields={[

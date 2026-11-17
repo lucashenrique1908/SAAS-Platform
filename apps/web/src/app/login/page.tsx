@@ -8,7 +8,7 @@ import { authRequest } from "@/lib/auth-api";
 export default function LoginPage() {
   const router = useRouter();
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-6 py-12">
+    <main className="flex w-full min-w-0 flex-1 flex-col items-center justify-center px-6 py-12">
       <AuthForm
         description="Sign in to your SaaS Platform account."
         fields={[
