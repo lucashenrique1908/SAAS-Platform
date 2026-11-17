@@ -24,7 +24,7 @@ All organization APIs are under `/organizations/:slug/developer` and use the exi
 
 ## Visibility, uploads and privacy
 
-New profiles default to public and can be made private. Public endpoints explicitly select safe fields; private certificates are never served publicly. Membership removal blocks public display and organization discovery but retains the records for a possible rejoin. Files are stored under `DEVELOPER_UPLOAD_DIR` with generated names, signature/size checks, path containment and owner/visibility checks. Local disk storage is intended for development; production needs a durable private storage adapter and backup/retention policy.
+New profiles default to private. Public sharing is an explicit opt-in; the member selects which profile categories are returned. A project is private by default and appears publicly only when both the profile owner selects the projects category and marks that project public. Photos and project covers follow those visibility choices. Public endpoints return only selected fields; certificates are never served publicly. Membership removal blocks public display and organization discovery but retains the records for a possible rejoin. Files are stored through the `DeveloperFileStorage` adapter under `DEVELOPER_UPLOAD_DIR` with generated names, signature/size checks, path containment and owner/visibility checks. Local disk is the only implemented adapter and is intended for development; production must bind a durable private storage adapter and configure backup/retention policy.
 
 ## Provider configuration
 
@@ -40,6 +40,14 @@ Add provider credentials only to the API runtime environment; never expose them 
 - `ADZUNA_COMMERCIAL_LICENSE_CONFIRMED=true`, `ADZUNA_ATTRIBUTION_LOGO_URL`: required in production in addition to API credentials. Adzuna's current terms require a commercial licence after the evaluation period for use in a revenue-generating product, and require a linked Adzuna logo attribution at least 116×23 px. Configure the logo URL only after installing an approved official logo asset and obtaining the applicable licence. The API production gate stays closed without both values.
 
 OAuth state is random, hashed in the database, bound to provider/user/organization, expires after ten minutes and is consumed once. Integration access and refresh tokens are encrypted at rest. Provider revocation is best effort; local credentials are deleted even when a provider is offline or a token has expired.
+
+Register these exact callback URLs with each OAuth provider (change only the origin to match `API_PUBLIC_BASE_URL`):
+
+- GitHub: `http://localhost:3001/integrations/oauth/github/callback`
+- LinkedIn: `http://localhost:3001/integrations/oauth/linkedin/callback`
+- Google: `http://localhost:3001/integrations/oauth/google_calendar/callback`
+
+Use HTTPS origins outside local development. The callback endpoints complete OAuth server-side and return the result to the frontend; callbacks cannot be exercised against real providers until client credentials and the provider-side redirect registration are configured.
 
 ## Local setup and validation
 

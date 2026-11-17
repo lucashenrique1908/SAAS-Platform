@@ -25,6 +25,9 @@ export function DeveloperSearch({ slug }: { slug: string }) {
   const [q, setQ] = useState("");
   const [skill, setSkill] = useState("");
   const [technology, setTechnology] = useState("");
+  const [language, setLanguage] = useState("");
+  const [location, setLocation] = useState("");
+  const [minYearsExperience, setMinYearsExperience] = useState("");
   const [members, setMembers] = useState<MemberResult[]>([]);
   const [projects, setProjects] = useState<ProjectResult[]>([]);
   const [status, setStatus] = useState(
@@ -38,6 +41,9 @@ export function DeveloperSearch({ slug }: { slug: string }) {
     const query = new URLSearchParams();
     if (q.trim()) query.set("q", q.trim());
     if (skill.trim()) query.set("skill", skill.trim());
+    if (language.trim()) query.set("language", language.trim());
+    if (location.trim()) query.set("location", location.trim());
+    if (minYearsExperience) query.set("minYearsExperience", minYearsExperience);
     const projectQuery = new URLSearchParams(query);
     if (technology.trim()) projectQuery.set("technology", technology.trim());
     try {
@@ -94,6 +100,35 @@ export function DeveloperSearch({ slug }: { slug: string }) {
             maxLength={120}
             value={technology}
             onChange={(event) => setTechnology(event.target.value)}
+          />
+        </label>
+        <label className="space-y-1 text-sm">
+          Language
+          <input
+            className="w-full rounded-md border bg-background p-2"
+            maxLength={120}
+            value={language}
+            onChange={(event) => setLanguage(event.target.value)}
+          />
+        </label>
+        <label className="space-y-1 text-sm">
+          Location
+          <input
+            className="w-full rounded-md border bg-background p-2"
+            maxLength={160}
+            value={location}
+            onChange={(event) => setLocation(event.target.value)}
+          />
+        </label>
+        <label className="space-y-1 text-sm">
+          Minimum years of experience
+          <input
+            className="w-full rounded-md border bg-background p-2"
+            type="number"
+            min={0}
+            max={80}
+            value={minYearsExperience}
+            onChange={(event) => setMinYearsExperience(event.target.value)}
           />
         </label>
         <button className="rounded-md bg-primary px-4 py-2 text-primary-foreground md:col-span-3">

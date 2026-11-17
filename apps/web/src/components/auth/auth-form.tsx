@@ -48,7 +48,7 @@ export function AuthForm({
   }
 
   return (
-    <section className="w-full max-w-md rounded-[1.75rem] border border-border/80 bg-card/90 p-6 shadow-[0_30px_70px_rgba(15,23,42,0.12)] backdrop-blur-sm sm:p-8">
+    <section className="w-[calc(100vw-3rem)] min-w-0 max-w-md rounded-[1.75rem] border border-border/80 bg-card/90 p-6 shadow-[0_30px_70px_rgba(15,23,42,0.12)] backdrop-blur-sm sm:p-8">
       <div className="mb-6 flex items-center gap-3">
         <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-base font-semibold text-primary-foreground shadow-sm shadow-primary/25">
           S

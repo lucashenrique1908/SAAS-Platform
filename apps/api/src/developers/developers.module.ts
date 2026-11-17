@@ -27,6 +27,10 @@ import { DeveloperJobsService } from './developer-jobs.service.js';
 import { DeveloperIntegrationsService } from './developer-integrations.service.js';
 import { DeveloperAiService } from './developer-ai.service.js';
 import {
+  DEVELOPER_FILE_STORAGE,
+  LocalDeveloperFileStorage,
+} from './developer-file-storage.js';
+import {
   DeveloperIntegrationsController,
   DeveloperOAuthCallbackController,
 } from './developer-integrations.controller.js';
@@ -59,6 +63,10 @@ import {
   providers: [
     DevelopersService,
     DeveloperFilesService,
+    {
+      provide: DEVELOPER_FILE_STORAGE,
+      useClass: LocalDeveloperFileStorage,
+    },
     DeveloperIntegrationsService,
     DeveloperAiService,
     DeveloperRoadmapsService,

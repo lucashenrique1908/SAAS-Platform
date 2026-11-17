@@ -1,13 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
-import { basename, isAbsolute, relative, resolve, sep } from 'node:path';
+import { basename } from 'node:path';
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Organization } from '../organizations/organization.entity.js';
@@ -19,6 +18,10 @@ import {
 } from './developer-file.entity.js';
 import { DeveloperProfile } from './developer-profile.entity.js';
 import { DeveloperProject } from './developer-project.entity.js';
+import {
+  DEVELOPER_FILE_STORAGE,
+  type DeveloperFileStorage,
+} from './developer-file-storage.js';
 
 export type BufferedDeveloperUpload = {
   buffer: Buffer;
@@ -30,10 +33,9 @@ type DetectedType = { mimeType: string; extension: string };
 
 @Injectable()
 export class DeveloperFilesService {
-  private readonly storageRoot: string;
-
   constructor(
-    config: ConfigService,
+    @Inject(DEVELOPER_FILE_STORAGE)
+    private readonly storage: DeveloperFileStorage,
     @InjectRepository(DeveloperFile)
     private readonly files: Repository<DeveloperFile>,
     @InjectRepository(DeveloperProfile)
@@ -46,12 +48,7 @@ export class DeveloperFilesService {
     private readonly organizations: Repository<Organization>,
     @InjectRepository(OrganizationMembership)
     private readonly memberships: Repository<OrganizationMembership>,
-  ) {
-    const configured = config.get<string>('DEVELOPER_UPLOAD_DIR');
-    this.storageRoot = resolve(
-      configured ?? resolve(process.cwd(), 'var/developer-uploads'),
-    );
-  }
+  ) {}
 
   async uploadProfilePhoto(
     organizationId: string,
@@ -145,6 +142,13 @@ export class DeveloperFilesService {
       where: { publicId, isPublic: true },
     });
     if (!profile) throw new NotFoundException('File not found.');
+    const publicFields = new Set(profile.publicFields ?? []);
+    if (
+      (fileId === profile.photoFileId && !publicFields.has('photo')) ||
+      (fileId !== profile.photoFileId && !publicFields.has('projects'))
+    ) {
+      throw new NotFoundException('File not found.');
+    }
     const [organization, membership, file] = await Promise.all([
       this.organizations.findOne({
         where: { id: profile.organizationId, isActive: true },
@@ -170,7 +174,11 @@ export class DeveloperFilesService {
     const project =
       file.purpose === 'project_cover'
         ? await this.projects.findOne({
-            where: { coverFileId: file.id, profileId: profile.id },
+            where: {
+              coverFileId: file.id,
+              profileId: profile.id,
+              isPublic: true,
+            },
             select: { id: true },
           })
         : null;
@@ -242,9 +250,7 @@ export class DeveloperFilesService {
       }),
     );
     try {
-      const path = this.safePath(file.storageKey);
-      await mkdir(this.storageRoot, { recursive: true });
-      await writeFile(path, upload.buffer, { flag: 'wx', mode: 0o600 });
+      await this.storage.put(file.storageKey, upload.buffer);
     } catch (error) {
       await this.files.delete({ id: file.id });
       throw error;
@@ -278,19 +284,10 @@ export class DeveloperFilesService {
     throw new BadRequestException('Unsupported file type.');
   }
 
-  private safePath(key: string) {
-    const path = resolve(this.storageRoot, key);
-    const rel = relative(this.storageRoot, path);
-    if (!key || isAbsolute(rel) || rel === '..' || rel.startsWith(`..${sep}`)) {
-      throw new BadRequestException('Invalid file path.');
-    }
-    return path;
-  }
-
   private async fileResponse(file: DeveloperFile) {
     let buffer: Buffer;
     try {
-      buffer = await readFile(this.safePath(file.storageKey));
+      buffer = await this.storage.get(file.storageKey);
     } catch {
       throw new NotFoundException('File not found.');
     }
@@ -310,7 +307,7 @@ export class DeveloperFilesService {
   }
 
   private async removeStoredFile(file: DeveloperFile) {
-    await unlink(this.safePath(file.storageKey)).catch(() => undefined);
+    await this.storage.remove(file.storageKey).catch(() => undefined);
     await this.files.delete({ id: file.id });
   }
 }

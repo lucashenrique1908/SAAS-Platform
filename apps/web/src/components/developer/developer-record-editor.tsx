@@ -123,6 +123,7 @@ const configs: Record<Kind, { title: string; fields: Field[] }> = {
         array: true,
       },
       { name: "isFeatured", label: "Featured project", type: "checkbox" },
+      { name: "isPublic", label: "Show on public profile", type: "checkbox" },
       { name: "displayOrder", label: "Display order", type: "number" },
     ],
   },

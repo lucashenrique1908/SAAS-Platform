@@ -79,8 +79,15 @@ export class DeveloperProfile {
   })
   websiteUrl!: string | null;
 
-  @Column({ name: 'is_public', type: 'boolean', default: true })
+  @Column({ name: 'is_public', type: 'boolean', default: false })
   isPublic!: boolean;
+
+  @Column({
+    name: 'public_fields',
+    type: 'jsonb',
+    default: () => "'[]'::jsonb",
+  })
+  publicFields!: string[];
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;

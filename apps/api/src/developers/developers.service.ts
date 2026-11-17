@@ -86,7 +86,8 @@ export class DevelopersService {
       githubUrl: input.githubUrl ?? null,
       linkedinUrl: input.linkedinUrl ?? null,
       websiteUrl: input.websiteUrl ?? null,
-      isPublic: input.isPublic ?? true,
+      isPublic: input.isPublic ?? false,
+      publicFields: input.publicFields ?? [],
       photoFileId: null,
     });
     try {
@@ -367,8 +368,26 @@ export class DevelopersService {
 
   async searchMembers(
     organizationId: string,
-    query: { q?: string; skill?: string; page?: number; pageSize?: number },
+    query: {
+      q?: string;
+      skill?: string;
+      language?: string;
+      location?: string;
+      minYearsExperience?: number;
+      maxYearsExperience?: number;
+      page?: number;
+      pageSize?: number;
+    },
   ) {
+    if (
+      query.minYearsExperience !== undefined &&
+      query.maxYearsExperience !== undefined &&
+      query.minYearsExperience > query.maxYearsExperience
+    ) {
+      throw new BadRequestException(
+        'Minimum experience cannot exceed maximum experience.',
+      );
+    }
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
     const builder = this.profiles
@@ -395,6 +414,27 @@ export class DevelopersService {
         `EXISTS (SELECT 1 FROM developer_skills skill WHERE skill.profile_id = profile.id AND skill.kind = 'technical' AND skill.name ILIKE :skill)`,
         { skill: `%${query.skill.trim()}%` },
       );
+    }
+    if (query.language?.trim()) {
+      builder.andWhere(
+        `EXISTS (SELECT 1 FROM developer_skills language WHERE language.profile_id = profile.id AND language.kind = 'language' AND language.name ILIKE :language)`,
+        { language: `%${query.language.trim()}%` },
+      );
+    }
+    if (query.location?.trim()) {
+      builder.andWhere('profile.location ILIKE :location', {
+        location: `%${query.location.trim()}%`,
+      });
+    }
+    if (query.minYearsExperience !== undefined) {
+      builder.andWhere('profile.yearsExperience >= :minYearsExperience', {
+        minYearsExperience: query.minYearsExperience,
+      });
+    }
+    if (query.maxYearsExperience !== undefined) {
+      builder.andWhere('profile.yearsExperience <= :maxYearsExperience', {
+        maxYearsExperience: query.maxYearsExperience,
+      });
     }
     const [profiles, total] = await builder
       .orderBy('profile.displayName', 'ASC')
@@ -548,43 +588,57 @@ export class DevelopersService {
     if (!organization || !membership) {
       throw new NotFoundException('Developer profile not found.');
     }
+    const fields = new Set(profile.publicFields ?? []);
     const [skills, experiences, education, certifications, projects] =
       await Promise.all([
-        this.skills.find({
-          where: { profileId: profile.id },
-          order: { kind: 'ASC', name: 'ASC' },
-        }),
-        this.experiences.find({
-          where: { profileId: profile.id },
-          order: { startDate: 'DESC' },
-        }),
-        this.education.find({
-          where: { profileId: profile.id },
-          order: { startDate: 'DESC' },
-        }),
-        this.certifications.find({
-          where: { profileId: profile.id },
-          order: { issueDate: 'DESC' },
-        }),
-        this.projects.find({
-          where: { profileId: profile.id },
-          order: { isFeatured: 'DESC', displayOrder: 'ASC' },
-        }),
+        fields.has('skills')
+          ? this.skills.find({
+              where: { profileId: profile.id },
+              order: { kind: 'ASC', name: 'ASC' },
+            })
+          : Promise.resolve([]),
+        fields.has('experience')
+          ? this.experiences.find({
+              where: { profileId: profile.id },
+              order: { startDate: 'DESC' },
+            })
+          : Promise.resolve([]),
+        fields.has('education')
+          ? this.education.find({
+              where: { profileId: profile.id },
+              order: { startDate: 'DESC' },
+            })
+          : Promise.resolve([]),
+        fields.has('certifications')
+          ? this.certifications.find({
+              where: { profileId: profile.id },
+              order: { issueDate: 'DESC' },
+            })
+          : Promise.resolve([]),
+        fields.has('projects')
+          ? this.projects.find({
+              where: { profileId: profile.id, isPublic: true },
+              order: { isFeatured: 'DESC', displayOrder: 'ASC' },
+            })
+          : Promise.resolve([]),
       ]);
     return {
       publicId: profile.publicId,
       displayName: profile.displayName,
-      title: profile.title,
-      biography: profile.biography,
-      location: profile.location,
-      yearsExperience: profile.yearsExperience,
-      availability: profile.availability,
-      githubUrl: profile.githubUrl,
-      linkedinUrl: profile.linkedinUrl,
-      websiteUrl: profile.websiteUrl,
-      photoUrl: profile.photoFileId
-        ? `/api/developers/${profile.publicId}/files/${profile.photoFileId}`
+      title: fields.has('title') ? profile.title : null,
+      biography: fields.has('biography') ? profile.biography : null,
+      location: fields.has('location') ? profile.location : null,
+      yearsExperience: fields.has('yearsExperience')
+        ? profile.yearsExperience
         : null,
+      availability: fields.has('availability') ? profile.availability : null,
+      githubUrl: fields.has('links') ? profile.githubUrl : null,
+      linkedinUrl: fields.has('links') ? profile.linkedinUrl : null,
+      websiteUrl: fields.has('links') ? profile.websiteUrl : null,
+      photoUrl:
+        fields.has('photo') && profile.photoFileId
+          ? `/api/developers/${profile.publicId}/files/${profile.photoFileId}`
+          : null,
       skills: skills.map(
         ({
           kind,

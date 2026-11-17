@@ -87,6 +87,9 @@ export class DeveloperProject {
   @Column({ name: 'is_featured', type: 'boolean', default: false })
   isFeatured!: boolean;
 
+  @Column({ name: 'is_public', type: 'boolean', default: false })
+  isPublic!: boolean;
+
   @Column({ name: 'display_order', type: 'integer', default: 0 })
   displayOrder!: number;
 

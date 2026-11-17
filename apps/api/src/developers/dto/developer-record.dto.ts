@@ -129,6 +129,7 @@ export class DeveloperProjectDto {
   @MaxLength(300, { each: true })
   mainFeatures?: string[];
   @IsOptional() @IsBoolean() isFeatured?: boolean;
+  @IsOptional() @IsBoolean() isPublic?: boolean;
   @IsOptional() @IsInt() @Min(0) @Max(100000) displayOrder?: number;
 }
 
@@ -136,6 +137,20 @@ export class DeveloperSearchQueryDto {
   @IsOptional() @IsString() @MaxLength(120) q?: string;
   @IsOptional() @IsString() @MaxLength(120) skill?: string;
   @IsOptional() @IsString() @MaxLength(120) technology?: string;
+  @IsOptional() @IsString() @MaxLength(120) language?: string;
+  @IsOptional() @IsString() @MaxLength(160) location?: string;
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(80)
+  minYearsExperience?: number;
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(80)
+  maxYearsExperience?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100000) page = 1;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(50) pageSize = 20;
 }

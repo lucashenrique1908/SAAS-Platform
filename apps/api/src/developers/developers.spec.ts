@@ -10,6 +10,8 @@ import { DeveloperModuleAccessGuard } from './guards/developer-module-access.gua
 import { ForbiddenException } from '@nestjs/common';
 import { DeveloperJobsService } from './developer-jobs.service.js';
 import { DeveloperIntegrationsService } from './developer-integrations.service.js';
+import { DevelopersService } from './developers.service.js';
+import { DeveloperPrivacyControls1763500000000 } from '../database/migrations/1763500000000-DeveloperPrivacyControls.js';
 
 const key = Buffer.alloc(32, 7).toString('base64');
 
@@ -147,6 +149,188 @@ describe('developer module access guard', () => {
       guard.canActivate(context('member', ['developer:read'])),
     ).resolves.toBe(true);
     await expect(guard.canActivate(context('admin', []))).resolves.toBe(true);
+  });
+});
+
+describe('developer public profile privacy', () => {
+  it('returns only selected fields and projects explicitly marked public', async () => {
+    const profiles = {
+      findOne: vi.fn().mockResolvedValue({
+        id: 'profile-a',
+        publicId: 'public-a',
+        organizationId: 'org-a',
+        userId: 'user-a',
+        displayName: 'Developer',
+        title: 'Private title',
+        biography: 'Private biography',
+        location: 'Private location',
+        yearsExperience: 8,
+        availability: 'available',
+        githubUrl: 'https://github.com/example',
+        linkedinUrl: null,
+        websiteUrl: null,
+        photoFileId: null,
+        publicFields: ['projects'],
+      }),
+    };
+    const skills = { find: vi.fn().mockResolvedValue([]) };
+    const experiences = { find: vi.fn().mockResolvedValue([]) };
+    const education = { find: vi.fn().mockResolvedValue([]) };
+    const certifications = { find: vi.fn().mockResolvedValue([]) };
+    const projects = {
+      find: vi
+        .fn()
+        .mockResolvedValue([
+          { name: 'Public project', isPublic: true, technologies: [] },
+        ]),
+    };
+    const organizations = {
+      findOne: vi.fn().mockResolvedValue({ id: 'org-a' }),
+    };
+    const memberships = {
+      findOne: vi.fn().mockResolvedValue({ id: 'membership-a' }),
+    };
+    const service = new DevelopersService(
+      profiles as never,
+      skills as never,
+      experiences as never,
+      education as never,
+      certifications as never,
+      projects as never,
+      organizations as never,
+      memberships as never,
+    );
+
+    const result = await service.getPublicProfile('public-a');
+
+    expect(result).toMatchObject({
+      displayName: 'Developer',
+      title: null,
+      biography: null,
+      location: null,
+      yearsExperience: null,
+      availability: null,
+      githubUrl: null,
+      skills: [],
+      experiences: [],
+      education: [],
+      certifications: [],
+      projects: [{ name: 'Public project' }],
+    });
+    expect(projects.find).toHaveBeenCalledWith({
+      where: { profileId: 'profile-a', isPublic: true },
+      order: { isFeatured: 'DESC', displayOrder: 'ASC' },
+    });
+    expect(skills.find).not.toHaveBeenCalled();
+    expect(experiences.find).not.toHaveBeenCalled();
+    expect(education.find).not.toHaveBeenCalled();
+    expect(certifications.find).not.toHaveBeenCalled();
+  });
+});
+
+describe('developer discovery filters', () => {
+  it('filters within the requested organization by language, location and experience', async () => {
+    const builder = {
+      select: vi.fn(),
+      where: vi.fn(),
+      andWhere: vi.fn(),
+      orderBy: vi.fn(),
+      skip: vi.fn(),
+      take: vi.fn(),
+      getManyAndCount: vi.fn().mockResolvedValue([[], 0]),
+    };
+    builder.select.mockReturnValue(builder);
+    builder.where.mockReturnValue(builder);
+    builder.andWhere.mockReturnValue(builder);
+    builder.orderBy.mockReturnValue(builder);
+    builder.skip.mockReturnValue(builder);
+    builder.take.mockReturnValue(builder);
+    const profiles = {
+      createQueryBuilder: vi.fn().mockReturnValue(builder),
+    };
+    const service = new DevelopersService(
+      profiles as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    await service.searchMembers('org-a', {
+      language: 'Portuguese',
+      location: 'Lisbon',
+      minYearsExperience: 3,
+      maxYearsExperience: 12,
+    });
+
+    expect(builder.where).toHaveBeenCalledWith(
+      'profile.organizationId = :organizationId',
+      { organizationId: 'org-a' },
+    );
+    expect(builder.andWhere).toHaveBeenCalledWith(
+      expect.stringContaining("language.kind = 'language'"),
+      { language: '%Portuguese%' },
+    );
+    expect(builder.andWhere).toHaveBeenCalledWith(
+      'profile.location ILIKE :location',
+      { location: '%Lisbon%' },
+    );
+    expect(builder.andWhere).toHaveBeenCalledWith(
+      'profile.yearsExperience >= :minYearsExperience',
+      { minYearsExperience: 3 },
+    );
+    expect(builder.andWhere).toHaveBeenCalledWith(
+      'profile.yearsExperience <= :maxYearsExperience',
+      { maxYearsExperience: 12 },
+    );
+  });
+
+  it('rejects an inverted experience range before querying', async () => {
+    const profiles = { createQueryBuilder: vi.fn() };
+    const service = new DevelopersService(
+      profiles as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    await expect(
+      service.searchMembers('org-a', {
+        minYearsExperience: 10,
+        maxYearsExperience: 2,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(profiles.createQueryBuilder).not.toHaveBeenCalled();
+  });
+});
+
+describe('developer privacy migration', () => {
+  it('adds private-by-default profile and project visibility fields reversibly', async () => {
+    const statements: string[] = [];
+    const runner = {
+      query: vi.fn(async (statement: string) => {
+        statements.push(statement);
+      }),
+    };
+    const migration = new DeveloperPrivacyControls1763500000000();
+
+    await migration.up(runner as never);
+    expect(statements.join('\n')).toContain('"public_fields" jsonb NOT NULL');
+    expect(statements.join('\n')).toContain(
+      '"is_public" boolean NOT NULL DEFAULT false',
+    );
+
+    statements.length = 0;
+    await migration.down(runner as never);
+    expect(statements.join('\n')).toContain('DROP COLUMN "public_fields"');
+    expect(statements.join('\n')).toContain('DROP COLUMN "is_public"');
   });
 });
 

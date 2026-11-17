@@ -47,8 +47,8 @@ async function HomeContent() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-6 py-12">
-      <div className="w-full max-w-6xl rounded-[2rem] border border-border/80 bg-card/80 p-6 shadow-[0_30px_80px_rgba(15,23,42,0.12)] backdrop-blur-sm md:p-10">
+    <main className="flex w-full min-w-0 min-h-screen flex-col items-center justify-center px-6 py-12">
+      <div className="w-[calc(100vw-3rem)] min-w-0 max-w-6xl rounded-[2rem] border border-border/80 bg-card/80 p-6 shadow-[0_30px_80px_rgba(15,23,42,0.12)] backdrop-blur-sm md:p-10">
         <header className="flex items-center justify-between gap-4 border-b border-border/80 pb-6">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-lg font-semibold text-primary-foreground shadow-sm shadow-primary/25">
@@ -69,8 +69,8 @@ async function HomeContent() {
           </nav>
         </header>
 
-        <section className="grid items-center gap-10 pt-10 md:grid-cols-[1.2fr_0.8fr] md:pt-14">
-          <div className="text-left">
+        <section className="grid min-w-0 items-center gap-10 pt-10 md:grid-cols-[1.2fr_0.8fr] md:pt-14">
+          <div className="min-w-0 text-left">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
               <Sparkles className="h-3.5 w-3.5" />
               Built for modern teams

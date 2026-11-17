@@ -16,8 +16,24 @@ type Profile = {
   linkedinUrl: string | null;
   websiteUrl: string | null;
   isPublic: boolean;
+  publicFields: string[];
   photoFileId: string | null;
 };
+
+const publicFieldOptions = [
+  ["title", "Professional title"],
+  ["biography", "Biography"],
+  ["location", "Location"],
+  ["yearsExperience", "Years of experience"],
+  ["availability", "Availability"],
+  ["links", "Professional links"],
+  ["photo", "Profile photograph"],
+  ["skills", "Skills and languages"],
+  ["experience", "Professional experience"],
+  ["education", "Education"],
+  ["certifications", "Certifications"],
+  ["projects", "Projects marked public"],
+] as const;
 
 const fields = [
   ["displayName", "Professional name"],
@@ -41,8 +57,9 @@ export function DeveloperProfileEditor({ slug }: { slug: string }) {
     githubUrl: "",
     linkedinUrl: "",
     websiteUrl: "",
-    isPublic: true,
+    isPublic: false,
   });
+  const [publicFields, setPublicFields] = useState<string[]>([]);
   const [status, setStatus] = useState("Loading profile…");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -68,6 +85,7 @@ export function DeveloperProfileEditor({ slug }: { slug: string }) {
           websiteUrl: data.websiteUrl ?? "",
           isPublic: data.isPublic,
         });
+        setPublicFields(data.publicFields ?? []);
         setStatus("");
       })
       .catch((error: unknown) => {
@@ -92,7 +110,7 @@ export function DeveloperProfileEditor({ slug }: { slug: string }) {
         `${encodeURIComponent(slug)}/developer/profile`,
         {
           method: "PUT",
-          body: JSON.stringify(values),
+          body: JSON.stringify({ ...values, publicFields }),
         },
       );
       setProfile(saved);
@@ -133,8 +151,8 @@ export function DeveloperProfileEditor({ slug }: { slug: string }) {
         <p className="text-sm text-muted-foreground">Developer module</p>
         <h1 className="text-3xl font-semibold">Professional profile</h1>
         <p className="mt-2 text-muted-foreground">
-          Education and certifications are optional. Your profile is public by
-          default and can be made private at any time.
+          Education and certifications are optional. Public profile sharing is
+          disabled until you enable it and choose the fields to share.
         </p>
       </header>
       {status && (
@@ -238,6 +256,33 @@ export function DeveloperProfileEditor({ slug }: { slug: string }) {
           />
           <span className="text-sm">Show this profile publicly</span>
         </label>
+        <fieldset className="space-y-2 rounded-lg border p-4">
+          <legend className="px-1 text-sm font-medium">
+            Fields shared publicly
+          </legend>
+          <p className="text-xs text-muted-foreground">
+            Your name is always shown when public sharing is enabled. Other
+            fields are included only when selected.
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {publicFieldOptions.map(([key, label]) => (
+              <label className="flex items-center gap-2 text-sm" key={key}>
+                <input
+                  type="checkbox"
+                  checked={publicFields.includes(key)}
+                  onChange={(event) =>
+                    setPublicFields((current) =>
+                      event.target.checked
+                        ? [...current, key]
+                        : current.filter((field) => field !== key),
+                    )
+                  }
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
         <button
           className="rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-60"
           disabled={saving}

@@ -1,5 +1,7 @@
 import { Transform } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsInt,
   IsIn,
@@ -75,4 +77,27 @@ export class DeveloperProfileDto {
   @IsOptional()
   @IsBoolean()
   isPublic?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(12)
+  @IsString({ each: true })
+  @IsIn(
+    [
+      'title',
+      'biography',
+      'location',
+      'yearsExperience',
+      'availability',
+      'links',
+      'photo',
+      'skills',
+      'experience',
+      'education',
+      'certifications',
+      'projects',
+    ],
+    { each: true },
+  )
+  publicFields?: string[];
 }

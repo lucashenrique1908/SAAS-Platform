@@ -8,7 +8,7 @@ export function AuthLinks({
   return (
     <nav
       aria-label="Authentication"
-      className="mt-6 flex flex-wrap items-center justify-center gap-3 text-sm"
+      className="mt-6 flex w-[calc(100vw-3rem)] min-w-0 max-w-full flex-wrap items-center justify-center gap-3 text-sm"
     >
       {links.map((link) => (
         <Link
