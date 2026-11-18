@@ -1,261 +1,221 @@
 # Plano das Sprints 4 e 5 — Barber Module
 
-## 1. Objetivo e estado da auditoria
+## 1. Resumo e estado
 
-Este documento planeia a fundação e a operação do módulo Barber em duas sprints. É planeamento; não descreve funcionalidades já implementadas.
+Este documento define o plano de implementação futuro do módulo Barber. Não descreve funcionalidade já implementada. O âmbito é interno à organização e cobre gestão da barbearia e profissionais, catálogo, clientes, disponibilidade, marcações e operações. Perfis públicos, descoberta pública, fotos e uploads estão fora das Sprints 4 e 5. As estimativas são provisórias, dado o carácter de aprendizagem do projeto.
 
-Auditoria realizada em 17-11-2026:
+A arquitetura existente é um monorepo npm workspaces com API NestJS, TypeORM e PostgreSQL e web Next.js. A API usa migrations explícitas e `synchronize: false`; sessão, CSRF, memberships, módulos habilitáveis e permissões da organização já existem. A web usa o BFF para chamadas autenticadas. Reutilizar estes padrões e não copiar a propriedade individual do módulo Developer para os recursos partilhados da barbearia.
 
-- Branch: `feature/sprint-4`, acompanhando `origin/feature/sprint-4`.
-- Commit observado: `fedd230` (`Merge pull request #9 from lucashenrique1908/feature/sprint-3-finalization`).
-- Estado Git: sem alterações rastreadas pendentes. Ficheiros não rastreados observados: `SPRINT-4-AUDIT-REPORT.txt` e `artifacts/`; ambos foram preservados.
-- Barber já consta no catálogo de módulos e permissões e tem landing page genérica. A API ainda não tem módulo funcional, entidades, controllers, services, DTOs, guards Barber nem migrations Barber.
-- Não foram executados testes ou comandos de validação nesta tarefa.
+Estrutura indicativa: API em `apps/api/src/barber/` (module, controller, services, guards, DTOs e entities); páginas internas em `apps/web/src/app/workspace/[slug]/barber/` e componentes em `apps/web/src/components/barber/`. Endpoints agrupados por `/organizations/:slug/barber`; contratos finais são definidos ao implementar DTOs, sem contornar sessão/BFF/CSRF.
 
-## 2. Arquitetura existente e reutilização
+Superfície funcional prevista: Sprint 4, leitura/edição do perfil; CRUD de profissionais e atribuições de gestão por Owner/Admin; CRUD de serviços e gestão Owner/Admin da relação profissional-serviço; CRUD de clientes conforme responsabilidade. Sprint 5, horários, exceções, consulta de disponibilidade, criação/gestão/cancelamento de marcações e resumo operacional. Autorização e isolamento aplicam-se a todas as rotas.
 
-O repositório é um monorepo npm workspaces com `apps/api` (NestJS, TypeORM, PostgreSQL) e `apps/web` (Next.js App Router, React, Tailwind CSS 4). O backend usa migrations explícitas, `synchronize: false`, DTOs/validação e módulos por domínio. A aplicação web usa o shell do workspace e handlers BFF para encaminhar sessão; chamadas mutáveis já incluem proteção CSRF no padrão existente.
+Na auditoria, `HEAD` e `origin/develop` observados localmente apontavam para `7bb0a46825d933ddffb8e2dfa45d39f4bd391ac7`; branch observada: `docs/barber-ownership-rules`. Já existiam relatórios e `artifacts/` não rastreados, preservados. Esta tarefa altera apenas este documento.
 
-Auth, Organizations, memberships, roles e módulo habilitável por organização são infraestrutura existente. `OrganizationAccessGuard` resolve slug/UUID, valida organização ativa e membership; permissões declaradas são aplicadas no backend. Owner/Admin têm acesso amplo, enquanto Members dependem de permissões explícitas. O Developer acrescenta guard próprio para módulo ativo e implementa domínio dentro de `apps/api/src/developers/`; as suas entidades, services e páginas dão exemplos de convenções, mas a propriedade individual do perfil Developer não deve ser copiada como modelo dos dados partilhados de uma barbearia.
+## 2. Regras de produto aprovadas
 
-Reutilizar o shell, navegação, BFF, sessão, CSRF, componentes UI, organização de DTO/controller/service/entity, migrations explícitas, Vitest e testes Supertest. Não generalizar CRUD ou refatorar módulos antes de existir repetição concreta. A solução de ficheiros do Developer é local; não prova armazenamento durável de produção. Fotografias e uploads estão adiados.
+As regras abaixo estão fechadas e não são decisões pendentes:
 
-Infraestrutura de testes confirmada: Vitest na API e web; teste E2E da API em `apps/api/test/app.e2e-spec.ts`; PostgreSQL de teste no Compose, porta 5433, com volume temporário e DB `saas_auth_test`. O E2E atual cobre principalmente autenticação/autorização. A suite de frontend existente é pequena (`apps/web/src/lib/auth-api.spec.ts`); há margem para criar cobertura dos fluxos Barber.
+- Existem perfil de negócio da barbearia e perfis individuais de profissionais. Só Owner/Admin criam e editam o perfil de negócio. Member pode lê-lo segundo a permissão do módulo.
+- Cada Member pode editar o seu próprio perfil profissional. Members também podem gerir profissionais explicitamente atribuídos. Owner/Admin podem criar e gerir profissionais com ou sem conta de plataforma.
+- Apenas Owner/Admin criam, alteram ou removem a associação administrativa profissional-Member. Na saída de um Member, essa associação é removida automaticamente e o profissional/dados são preservados; Owner/Admin podem atribuí-lo a outro Member.
+- Apenas Owner pode excluir permanentemente um profissional; Admin não pode fazê-lo. A operação elimina perfil, marcações, histórico, horários, indisponibilidades, associações a serviços, associações administrativas a Members e os restantes dados operacionais desse profissional. Os registos de clientes e todos os seus dados pessoais têm de ser preservados integralmente; remover as associações do profissional a clientes sem cascata que apague clientes. A operação tem de ser transacional.
+- Owner/Admin criam e gerem serviços e atribuem os profissionais que os podem executar. A relação serviço-profissional é explícita e pode ser muitos-para-muitos. Member nunca cria, altera, atribui ou remove essas associações. Member só altera dados do serviço quando a responsabilidade aplicável o permite, sem poderes administrativos sobre associações.
+- Cliente tem nome e telefone obrigatórios, email opcional e duplicados permitidos. Ao criar cliente, Member fica automaticamente associado ao profissional ligado à sua conta. Member só consulta/edita os seus clientes; Owner/Admin podem consultar/gerir todos. Ver dados do cliente no contexto de uma marcação é exceção limitada, não acesso geral ao registo.
+- O cliente pode escolher no agendamento um profissional disponibilizado para o serviço. Esta escolha é independente da associação administrativa profissional-Member.
+- Agendamento distingue o utilizador criador (`createdByUserId`) do profissional associado. Criador e profissional associado podem geri-lo de acordo com autorização; Owner/Admin gerem todas as marcações. Member pode ver, em marcação de outro profissional, nome e contactos do cliente e serviço associado, mas não consultar/editar o registo geral do cliente por isso.
+- Estados: `PENDING`, `CONFIRMED`, `COMPLETED`, `CANCELLED`. Cancelamento normal preserva histórico. A exclusão permanente do profissional é uma exceção expressamente aprovada: elimina as suas marcações e histórico associado.
+- `barber:read` dá leitura dos dados operacionais permitidos pelas regras acima. `barber:write` só permite escrita dentro da responsabilidade ou atribuição aplicável. API aplica autorização; interface não é fronteira de segurança.
+- Isolamento por organização é obrigatório. Timezone configurável por organização, com `Europe/Lisbon` como valor inicial recomendado. Preços em EUR; marcações guardam snapshots de preço/duração. Uma localização por organização nesta versão.
 
-Documentação consultada: `docs/DEVELOPER_MODULE.md`, `docs/ORGANIZATION_WORKSPACE.md`, `docs/AUTHENTICATION.md` e `docs/QUALITY_AND_SECURITY.md`. A documentação funcional do Developer não será modificada por este plano.
+## 3. Arquitetura, responsabilidade e conflitos resolvidos
 
-## 3. Decisões aprovadas incorporadas
+Auth/Organizations já têm `OrganizationAccessGuard`, memberships com papéis `owner`, `admin`, `member` e permissões do módulo. Owner/Admin têm acesso organizacional amplo; Members precisam da permissão pertinente. O módulo Barber ainda não tem entidades/migrations próprias. Verificar organização, membership, estado do módulo e permissão/responsabilidade no backend em todas as operações e consultas por ID.
 
-- Organização pode registar profissionais com conta e sem conta. O perfil profissional tem `userId` opcional; quando presente, a associação deve corresponder a membership da mesma organização.
-- Existem perfil da barbearia e perfis profissionais individuais. Ambos são internos nas Sprints 4 e 5; descoberta e perfis públicos ficam adiados.
-- Owner/Admin têm acesso organizacional amplo. Member pode ler dados operacionais da organização com `barber:read`; `barber:write` apenas permite escritas nos registos sob responsabilidade atribuída ao Member. As autorizações serão aplicadas na API.
-- Cliente: nome e telefone obrigatórios; email opcional. Duplicados são permitidos; não se bloqueia por telefone, email ou nome. Nenhum outro dado pessoal é requisito inicial.
-- Timezone configurado na organização, com `Europe/Lisbon` como valor inicial recomendado, configurável para outros países. Instantes persistidos sem ambiguidade; apresentação no timezone organizacional, incluindo DST.
-- Estados de agendamento aprovados: `PENDING`, `CONFIRMED`, `COMPLETED`, `CANCELLED`. Cancelamento preserva histórico.
-- Serviço tem preço em EUR e duração. Agendamento guarda snapshot do preço e duração vigentes na criação.
-- Serviço só pode ser realizado pelos profissionais associados explicitamente.
-- Uma localização por organização nesta fase. Não criar entidades de localizações, cadeiras ou recursos nesta entrega.
-- Sem fotos/uploads Barber nas Sprints 4 e 5.
+### Conceitos e uso por entidade
 
-## 4. Arquitetura proposta
+- `createdByUserId`: utilizador de plataforma que criou determinado registo; registo de autoria, não de responsabilidade atual.
+- `userId`: associação opcional da entidade `BarberProfessional` à conta de plataforma do profissional. Não representa a associação administrativa de gestão.
+- `responsibleProfessionalId`: usar apenas em recursos com responsável profissional singular. Adequado, por exemplo, à associação de um cliente ao profissional que o Member tinha ao criá-lo. Não usar em `BarberService`, cuja associação de execução é muitos-para-muitos, nem como substituto do profissional da marcação.
+- Associação administrativa profissional-Member: relação própria, tenant-scoped, para conceder gestão Member a profissionais explicitamente atribuídos. Só Owner/Admin a alteram.
+- `BarberAppointment` usa `createdByUserId` e `professionalId` em conceitos/relações distintos. A escolha do profissional pelo cliente no agendamento seleciona um profissional associado ao serviço e disponibilizado pela organização; não cria nem altera a associação administrativa profissional-Member.
 
-### API
+| Entidade                                         | Tenant                                  | Criador                                       | Responsabilidade/atribuição                                                                                                                      | Conta de plataforma                                                     |
+| ------------------------------------------------ | --------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| `BarberBusinessProfile`                          | `organizationId`, único por organização | Opcional para auditoria                       | Nenhuma; recurso partilhado da organização                                                                                                       | Nenhuma                                                                 |
+| `BarberProfessional`                             | `organizationId` obrigatório            | Recomendado para auditoria                    | Associação administrativa a Member em relação separada                                                                                           | `userId` opcional; profissional sem conta é válido                      |
+| `BarberProfessionalManager` (relação indicativa) | Tenant validado                         | Auditoria de quem atribuiu é recomendada      | Liga profissional a Member explicitamente autorizado; gestão da relação apenas Owner/Admin                                                       | Referencia Member/membership, não substitui `BarberProfessional.userId` |
+| `BarberService`                                  | `organizationId` obrigatório            | Recomendado                                   | Sem responsável singular; profissionais autorizados pelo conjunto de associações                                                                 | Nenhuma                                                                 |
+| `BarberProfessionalService`                      | `organizationId` e FKs de mesmo tenant  | Opcional                                      | Associação N:N explícita; só Owner/Admin alteram                                                                                                 | Nenhuma                                                                 |
+| `BarberClient`                                   | `organizationId` obrigatório            | `createdByUserId` recomendado                 | Profissional atribuído; autoassociação no create por Member. Ao excluir profissional, retirar a referência e manter cliente/dados integralmente. | Nenhuma                                                                 |
+| `BarberAppointment`                              | `organizationId` obrigatório            | `createdByUserId` obrigatório enquanto existe | `professionalId` do atendimento; criador e profissional podem gerir conforme autorização                                                         | Criador e profissional são referências distintas                        |
+| `BarberWorkingHours`                             | `organizationId` obrigatório            | Opcional para auditoria                       | Pertence a profissional                                                                                                                          | Nenhuma                                                                 |
+| `BarberAvailabilityException`                    | `organizationId` obrigatório            | Recomendado para auditoria                    | Pertence a profissional                                                                                                                          | Nenhuma                                                                 |
 
-```text
-apps/api/src/barber/
-  barber.module.ts
-  barber.controller.ts
-  barber.service.ts
-  barber-scheduling.service.ts       # Sprint 5
-  guards/barber-module-access.guard.ts
-  dto/
-  entities/
-```
+### Acesso a clientes e marcações; efeitos de remoção
 
-Controladores sob `/organizations/:slug/barber`. Usar `OrganizationAccessGuard`, guard Barber que confirma módulo habilitado e `@RequireModulePermissions` conforme operação. Services recebem `organizationId` validado e incluem-no nas consultas; IDs de entidades relacionadas devem ser procurados dentro da mesma organização. Quando o recurso for de propriedade individual, verificar ainda `professionalId`/responsável atribuído.
+Member consulta/edita clientes atribuídos ao seu perfil profissional no módulo de clientes. Em qualquer marcação que tenha autorização para ler pela regra operacional, pode ver o nome, contacto e serviço dessa marcação, mesmo que pertença a outro profissional. Essa projeção contextual não concede acesso à ficha geral, pesquisa ou edição do cliente. Se a exclusão de profissional eliminar uma marcação, essa projeção deixa de existir com a marcação; o registo geral de cliente e os dados pessoais não são alterados.
 
-### Web
+Quando um profissional é excluído, os clientes antes associados a ele permanecem íntegros e ficam sem essa associação. Owner/Admin continuam a poder consultar/gerir todos os clientes. Member continua limitado aos clientes sob a sua responsabilidade; a eliminação não transfere automaticamente clientes a outro profissional nem concede acesso geral. Uma eventual reatribuição é operação administrativa segundo as permissões existentes, sem atribuição automática definida neste plano.
 
-```text
-apps/web/src/app/workspace/[slug]/barber/
-  page.tsx
-  profile/page.tsx
-  professionals/page.tsx
-  services/page.tsx
-  clients/page.tsx
-  schedule/page.tsx                 # Sprint 5
-  appointments/page.tsx              # Sprint 5
-apps/web/src/components/barber/
-  business-profile-editor.tsx
-  professional-editor.tsx
-  service-editor.tsx
-  client-editor.tsx
-  weekly-schedule-editor.tsx        # Sprint 5
-  appointment-editor.tsx            # Sprint 5
-```
+A saída de Member é diferente: elimina a associação administrativa desse Member ao profissional, mas preserva o profissional e todos os dados operacionais. Não equivale à exclusão do profissional. `userId` da conta profissional também é distinto da relação de gestão; a API nunca concede acesso sem membership ativa. A implementação deve manter essa distinção e não pode apagar perfil/dados por saída de Member.
 
-Manter chamadas pelo BFF/sessão/CSRF e componentes de UI existentes. Adaptar navegação ao padrão de páginas Developer. Sem abstrações CRUD genéricas preventivas.
+## 4. Matriz de permissões por entidade
 
-### Modelo lógico indicativo
+Pré-condições comuns: sessão válida, organização ativa, membership válida, Barber habilitado e autorização de módulo. Operações Member exigem a permissão adequada e verificação de responsabilidade/atribuição. `barber:read` sozinho não permite escrita. `barber:write` não concede ações administrativas. A tabela descreve direitos de dados da organização; regras de associação a conta, atribuição e exclusão estão explícitas por linha.
 
-| Entidade                      | Relações e notas                                                                                                                                                |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `BarberBusinessProfile`       | Um por organização; perfil interno da barbearia. Não duplicar campos de organização sem esclarecer que informação de negócio adicional é necessária.            |
-| `BarberProfessional`          | Pertence a organização; `userId` opcional; pode ter perfil profissional interno. Conta associada requer membership da organização.                              |
-| `BarberService`               | Pertence a organização; nome, descrição, duração, preço EUR, estado ativo. Desativar em vez de apagar se referenciado historicamente.                           |
-| `BarberProfessionalService`   | Relação muitos-para-muitos explícita entre profissional e serviço, com unicidade e ambos da mesma organização.                                                  |
-| `BarberClient`                | Pertence à organização; nome, telefone, email opcional; duplicados permitidos.                                                                                  |
-| `BarberWorkingHours`          | Sprint 5: períodos semanais por profissional e dia da semana, conforme regra de pausas a fechar.                                                                |
-| `BarberAvailabilityException` | Sprint 5: indisponibilidade/folga com início e fim.                                                                                                             |
-| `BarberAppointment`           | Sprint 5: organização, profissional, cliente, serviço, início/fim, estado e snapshots de preço/duração. Preservar relações históricas sem cascatas destrutivas. |
+| Entidade                                      | Owner                                                                               | Admin                                                                                | Member `barber:read`                                                                                                           | Member `barber:write`                                                                                                                                                                                                              |
+| --------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Perfil de negócio                             | Ler/criar/editar; sem vínculo profissional artificial                               | Igual ao Owner                                                                       | Ler                                                                                                                            | Ler; sem criar/editar                                                                                                                                                                                                              |
+| Profissional                                  | Ler/criar/editar todos; associar conta e atribuir gestores; excluir permanentemente | Ler/criar/editar todos; associar conta e atribuir gestores; não excluir profissional | Ler todos                                                                                                                      | Editar o próprio perfil ligado à conta e gerir profissionais explicitamente atribuídos; sem criar profissional nem alterar conta/associação de gestão; sem excluir                                                                 |
+| Associação administrativa profissional-Member | Criar/alterar/remover                                                               | Criar/alterar/remover                                                                | Ler quando exposta pela operação autorizada                                                                                    | Sem criar, alterar ou remover                                                                                                                                                                                                      |
+| Serviço                                       | Ler/criar/editar/desativar; atribuir/reassociar profissionais                       | Igual ao Owner                                                                       | Ler todos                                                                                                                      | Editar apenas campos permitidos se a responsabilidade se aplicar ao profissional próprio/atribuído; sem criar serviço ou mudar associação profissional-serviço                                                                     |
+| Associação serviço-profissional               | Criar/alterar/remover                                                               | Criar/alterar/remover                                                                | Ler                                                                                                                            | Ler; sem atribuir, alterar ou remover                                                                                                                                                                                              |
+| Cliente                                       | Ler/criar/editar/arquivar todos; gerir associação profissional                      | Igual ao Owner                                                                       | Ler apenas os seus no contexto de clientes; na marcação autorizada, ver nome/contactos/serviço inclusive de outro profissional | Criar (autoassociação ao próprio profissional), ler/editar apenas os seus; sem reatribuir. Duplicados permitidos                                                                                                                   |
+| Horário                                       | Ler/criar/editar/remover de todos                                                   | Igual ao Owner                                                                       | Ler todos                                                                                                                      | Ler todos; editar/remover apenas o próprio horário ou de profissional atribuído                                                                                                                                                    |
+| Exceção de disponibilidade                    | Ler/criar/editar/remover de todos                                                   | Igual ao Owner                                                                       | Ler todas                                                                                                                      | Ler todas; gerir apenas profissional próprio ou atribuído                                                                                                                                                                          |
+| Marcação                                      | Ler/criar/editar/cancelar todas                                                     | Igual ao Owner                                                                       | Ler marcações organizacionais; nos seus dados contextuais mostrar nome/contacto do cliente e serviço                           | Criar; gerir se Member for criador ou profissional associado ligado/atribuído. Sem alterar autor original ou reassociar profissional. Escolha inicial de profissional é do cliente dentro das opções disponibilizadas para serviço |
+| Dashboard                                     | Ler agregado organizacional                                                         | Igual ao Owner                                                                       | Ler agregado permitido, respeitando visibilidade de marcação/cliente                                                           | Ler agregado permitido; sem escrita                                                                                                                                                                                                |
 
-Todas as tabelas operacionais possuem `organizationId`, FKs, índices de consulta por tenant e constraints de integridade. Recomenda-se UUIDs como restante domínio. Definir política de deleção/retensão explicitamente em cada migration. Antes da Sprint 5, escolher mecanismo PostgreSQL para impedir sobreposição concorrente no nível transacional/DB; consulta prévia isolada não basta.
+**Exclusão profissional:** só Owner, em operação permanente e transacional. Admin, mesmo com acesso administrativo geral, recebe recusa. Elimina todos os dados e relações operacionais pertencentes ao profissional, incluindo marcações e histórico; preserva clientes/dados pessoais e remove associações profissional-cliente sem cascata para cliente.
 
-### API indicativa
+**Saída de Member:** ao remover membership, também remover a relação administrativa entre esse Member e o profissional; manter profissional/dados. Owner/Admin podem criar nova atribuição. Não confundir com exclusão profissional.
 
-Sprint 4:
+## 5. Modelo de dados, integridade e segurança
 
-- `GET/PUT profile`
-- `GET/POST professionals`, `GET/PUT/DELETE professionals/:id` (preferir desativação quando referenciado)
-- `GET/POST services`, `GET/PUT/DELETE services/:id`
-- `PUT services/:id/professionals` ou rotas equivalentes para associação explícita
-- `GET/POST clients`, `GET/PUT/DELETE clients/:id` (retenção a definir; evitar apagamento físico com histórico)
+Modelo lógico indicativo (não schema aprovado):
 
-Sprint 5:
+- `BarberBusinessProfile`: um por organização, `organizationId` único.
+- `BarberProfessional`: `organizationId`, `userId` anulável, dados/estado do profissional. Associação a conta valida membership do utilizador na organização no momento da associação; a referência de conta não é a relação administrativa de gestão. A integridade/remoção de membership não pode apagar profissional/dados; o desenho de FK deve preservar este requisito. Profissional sem conta permanece válido.
+- Relação profissional-Member separada de `userId`; valida tenant e membership. A cardinalidade permanece detalhe técnico a fechar.
+- `BarberService`: tenant, preço EUR, duração, descrição/estado. Não tem `responsibleProfessionalId` singular se N:N.
+- `BarberProfessionalService`: tabela/relacionamento N:N com unicidade do par profissional-serviço e ambos no mesmo tenant.
+- `BarberClient`: tenant, nome, telefone, email opcional, criador opcional e associação profissional de responsabilidade. Permitir ausência de profissional após exclusão do associado; não impor unicidade de duplicados.
+- `BarberWorkingHours`: períodos recorrentes por profissional/dia, um ou mais intervalos para permitir pausas.
+- `BarberAvailabilityException`: intervalo de indisponibilidade associado ao profissional.
+- `BarberAppointment`: tenant, `createdByUserId`, `professionalId`, cliente, serviço, instantes, estado e snapshots de preço/duração. FKs/relações coerentes com tenant.
 
-- `GET/PUT professionals/:id/schedule`
-- `GET/POST/DELETE professionals/:id/availability-exceptions`
-- `GET availability?professionalId=&serviceId=&from=&to=`
-- `GET/POST appointments`, `GET/PUT appointments/:id`, ação de transição/cancelamento
-- `GET dashboard/summary`
+Requisitos de implementação:
 
-Os nomes finais de endpoints e métodos de transição devem ser fechados ao desenhar DTOs; toda rota requer tenant, permissão e propriedade aplicável.
+1. Incluir `organizationId` em cada tabela operacional apropriada. Consultas sempre filtram pelo tenant validado no backend; não depender da UI nem de ID recebido.
+2. Usar FKs compostas/constraints apropriadas para impedir relações entre organizações: profissional e conta validada na membership do tenant; profissional e gestor; os dois lados da junção serviço-profissional; cliente/profissional; marcação/criador, cliente, serviço e profissional. A referência opcional `userId` não pode criar dependência que apague profissional quando uma membership termina. Índices devem apoiar consultas tenant-scoped e unicidade; não criar relações apenas no ORM sem constraint de DB quando a integridade exigir garantia concorrente.
+3. Na criação de cliente por Member, derivar profissional do vínculo autenticado, nunca confiar em `responsibleProfessionalId` enviado pelo cliente. Na marcação, validar serviço ativo e associação com o profissional escolhido, todos no tenant.
+4. Validar autorização em API/service para leitura, escrita e reassociação, incluindo acesso por ID. As ações do Owner/Admin sobre associações não podem ser invocadas por Member. Transações unem mudança de membership e remoção da associação de gestão quando necessário.
+5. **Exclusão profissional:** autorização Owner-only validada no backend; uma única transação atómica elimina todas as marcações e histórico operacional, horários, exceções, junções com serviços, associações profissionais-Member e restantes dependências do profissional. Remover também a associação `BarberClient` ao profissional. A FK/estratégia de referência de cliente não pode executar `CASCADE` para a linha do cliente nem para dados pessoais; deve permitir que o cliente permaneça sem associação profissional. Remover primeiro dependências que referenciam o profissional, manter intactas as linhas de cliente e eliminar o perfil profissional por último, ou usar outra ordem/transação que satisfaça as mesmas invariantes. Se qualquer passo falhar, reverter toda a transação para não deixar eliminação parcial. Não preservar marcações/histórico do profissional excluído. Definir nulabilidade e ordem concreta ao desenhar a migration; este documento não fixa schema nem mecanismo.
+6. Saída de Member remove a associação de gestão sem acionar deleção do profissional, dos seus dados, clientes ou marcações. A autorização futura decorre de membership ativa mais permissão e responsabilidade/atribuição atual.
+7. Definir política de deleção/retensão para as restantes entidades. Usar migrations TypeORM explícitas, reversíveis, sem `synchronize`; FKs e política de retenção não podem introduzir cascatas destrutivas não aprovadas.
+8. Preços persistidos com exatidão (decimal adequado ou cêntimos inteiros), nunca float binário. Instantes de marcação inequívocos; recorrências/entrada local interpretadas no timezone da organização, incluindo DST.
 
-## 5. Sprint 4 — Barber Foundation & Management
+## 6. Sprint 4 — Foundation & Management
 
-**Objetivo:** entregar fundação, perfil da barbearia, profissionais, catálogo/associações e clientes. Não inclui horários, indisponibilidades, agendamentos, calendário, dashboard operacional ou descoberta pública.
+Objetivo: acesso, modelo/migrations, perfil de negócio e profissionais, catálogo/associações e clientes. Sem agenda, disponibilidade ou descoberta pública. Todas as estimativas são provisórias. Prioridade P0 significa necessária para completar a fundação, não compromisso de capacidade.
 
-### BARBER-01 — Acesso e estrutura do módulo
+### BARBER-01 — Acesso ao módulo
 
-- **Objetivo/descrição:** registar módulo NestJS e páginas iniciais, garantindo acesso por membership, módulo ativo e permissões já existentes.
-- **Técnico:** novo guard Barber seguindo o Developer; todas as rotas protegidas. Sem alteração das permissões globais existentes salvo necessidade demonstrada.
-- **Subtasks:** (1) registar Barber no módulo raiz e TypeORM; (2) criar guard de módulo ativo; (3) criar controller e rota base com acesso organizacional; (4) adicionar páginas e navegação; (5) testar módulo desligado e matriz base de autorização.
-- **Aceitação:** utilizador sem membership não acede; módulo desligado bloqueia API e UI; Owner/Admin podem usar o módulo; Member precisa de leitura/escrita respetiva; escrita limitada pela política de propriedade nas Tasks de domínio.
+- **Objetivo/descrição:** estabelecer rotas e UI Barber protegidas pelo modelo existente.
+- **Subtasks:** registar módulo Nest e entidades; guard de módulo ativo; controller sob `/organizations/:slug/barber`; páginas/navegação e BFF; política de permissão por rota.
+- **Aceitação:** sem membership/organização ativa/módulo habilitado não há acesso; Owner/Admin têm acesso operacional; Member exige permissão apropriada; tentativas de escrita sem `barber:write` são recusadas no backend; UI não substitui autorização.
 - **Dependências:** nenhuma. **Prioridade:** P0. **Estimativa:** 3 pontos. **Áreas:** Backend, Frontend, Testing, Documentation.
 
-### BARBER-02 — Modelo de dados e migrations
+### BARBER-02 — Modelo, migrations e isolamento
 
-- **Objetivo/descrição:** persistir perfil de organização, profissionais, serviços, associações e clientes com isolamento tenant.
-- **Técnico:** entities/constraints TypeORM, migration explícita e reversível; `organizationId` em cada registo operativo; user opcional no profissional.
-- **Subtasks:** (1) detalhar relações e comportamento de deleção; (2) criar entidades e índices; (3) migration `up/down`; (4) registar entidades; (5) testes de migration e constraints; (6) definir timezone no perfil/organização sem migração nesta tarefa funcional se decisão técnica indicar coluna separada necessária para Sprint 5.
-- **Aceitação:** entidades instanciam e constraints garantem referências válidas; uma associação cross-tenant falha; migration reverte; nenhum dado é removido por cascade de forma não aprovada.
+- **Objetivo/descrição:** definir tabelas, FKs, índices, constraints tenant-safe e política referencial para entidades Sprint 4.
+- **Subtasks:** mapear entidades/relacionamentos; fechar retenção inicial e índices; criar migration explícita `up/down`; registar TypeORM; provar rollback e integridade.
+- **Aceitação:** perfil único por organização; profissional com/sem conta; relação service-professional N:N; duplicados de cliente aceites; referências cross-tenant rejeitadas no DB; migration reversível; nenhuma cascata para clientes; nulabilidade de associação cliente-profissional compatível com exclusão futura aprovada e cascatas de outros dados apenas conforme regras de exclusão explicitamente aprovadas.
 - **Dependências:** BARBER-01. **Prioridade:** P0. **Estimativa:** 5 pontos. **Áreas:** Backend, Database, Testing, Documentation.
 
 ### BARBER-03 — Perfil da barbearia e profissionais
 
-- **Objetivo/descrição:** gerir os dados internos da barbearia e vários profissionais, com ou sem conta.
-- **Técnico:** profile por organização; `userId` opcional no profissional; associação com conta verifica membership. Fotografias e publicação pública fora do escopo.
-- **Subtasks:** (1) fechar campos do perfil e regras de propriedade; (2) DTOs e validação; (3) service/endpoints tenant-aware; (4) interface de perfil e profissionais; (5) associar/desassociar membro sem aceitar utilizador de outro tenant; (6) testes de acesso de cada papel e casos com/sem conta.
-- **Aceitação:** organização mantém no máximo o perfil acordado; pode criar profissional interno sem conta; conta associada pertence à organização; Member só edita perfil próprio/atribuições permitidas, nunca perfil de outro; Owner/Admin gerem todos.
-- **Dependências:** BARBER-02 e decisão de campos/proprietário. **Prioridade:** P0. **Estimativa:** 5 pontos. **Áreas:** Frontend, Backend, Database, Testing.
+- **Objetivo/descrição:** gerir perfil de negócio e perfis profissionais internos.
+- **Subtasks:** definir campos mínimos; DTO/service/API; associação opcional de conta; relação administrativa profissional-Member; edição própria e gestão atribuída; comportamento de saída de Member; implementar autorização de exclusão exclusivamente Owner e remoção transacional do perfil e dependências operacionais, depois de BARBER-02 definir constraints compatíveis.
+- **Aceitação:** somente Owner/Admin criam/editam perfil de negócio e gerem todos profissionais; Member edita próprio perfil ou gere profissional explicitamente atribuído com `barber:write`; Owner/Admin atribuem/alteram/removem relação de gestão; profissional sem conta continua válido; saída remove relação Member-profissional e preserva profissional/dados; Admin é recusado na exclusão; Owner exclui perfil, marcações/histórico, horários, exceções, associações de serviços/Members e restantes dados operacionais em transação; clientes e todos os seus dados pessoais permanecem e a ligação ao profissional é removida sem cascata. Falha em qualquer passo reverte operação integralmente.
+- **Dependências:** BARBER-02. **Prioridade:** P0. **Estimativa:** 5 pontos. **Áreas:** Backend, Frontend, Database, Testing.
 
-### BARBER-04 — Serviços e associação a profissionais
+### BARBER-04 — Serviços e atribuições
 
-- **Objetivo/descrição:** criar e manter serviços com preço EUR, duração e associação explícita a profissionais.
-- **Técnico:** CRUD, estado ativo, relações tenant-safe; política de desativação para referências históricas.
-- **Subtasks:** (1) DTOs com limites e formato monetário definido; (2) services/endpoints; (3) operações de associação explícita; (4) lista/editor UI; (5) regras de propriedade/responsável Member; (6) testes de preços/duração, serviço inativo e ligações cross-tenant.
-- **Aceitação:** não se associa profissional externo; profissional só atende serviço associado; Owner/Admin gerem catálogo; Member só altera serviço se explicitamente responsável/atribuído; não apagar fisicamente registo histórico.
-- **Dependências:** BARBER-02 e BARBER-03. **Prioridade:** P0. **Estimativa:** 5 pontos. **Áreas:** Frontend, Backend, Database, Testing.
+- **Objetivo/descrição:** gerir catálogo e profissionais habilitados para cada serviço.
+- **Subtasks:** preço/duração/validação; CRUD tenant-aware; junção N:N; UI de associação; regras de responsabilidade de Member.
+- **Aceitação:** Owner/Admin criam e gerem serviços e atribuições; associação é explícita e permite vários profissionais; Member nunca cria/altera/remove/reatribui associações; Member edita apenas campos operacionais permitidos quando responsabilidade se aplica; ID de serviço ou profissional de outro tenant é rejeitado; histórico de marcações guarda snapshots.
+- **Dependências:** BARBER-02 e BARBER-03. **Prioridade:** P0. **Estimativa:** 5 pontos. **Áreas:** Backend, Frontend, Database, Testing.
 
-### BARBER-05 — Gestão de clientes
+### BARBER-05 — Clientes
 
-- **Objetivo/descrição:** guardar e pesquisar dados mínimos dos clientes da organização.
-- **Técnico:** nome e telefone obrigatórios, email opcional, duplicados aceites; acesso limitado por tenant e responsável.
-- **Subtasks:** (1) DTO/validação; (2) CRUD e pesquisa; (3) formulário/lista; (4) política de responsabilidade de criação/edição; (5) testes de duplicado permitido, validação e isolamento.
-- **Aceitação:** cliente pode ser criado com nome/telefone sem email; duplicado não é rejeitado; Member só altera clientes atribuídos segundo regra aprovada; outra organização nunca pode ler/alterar o registo por ID.
-- **Dependências:** BARBER-02; decisão de atribuição/retensão. **Prioridade:** P0. **Estimativa:** 3 pontos. **Áreas:** Frontend, Backend, Database, Testing.
+- **Objetivo/descrição:** criar e consultar fichas mínimas com proteção de responsabilidade.
+- **Subtasks:** DTO/nome/telefone/email; create Member com profissional derivado da conta; CRUD/pesquisa; UI; regras de associação e restrição contextual de marcação.
+- **Aceitação:** nome e telefone obrigatórios, email opcional, duplicados aceites; Member cria cliente associado ao seu perfil profissional, consulta/edita apenas os seus; Owner/Admin consultam/gerem todos; payload de marcação dá acesso contextual a nome/contacto/serviço conforme regra, sem conceder acesso à ficha geral; FK profissional pode ser removida sem alterar/apagar cliente na exclusão de profissional.
+- **Dependências:** BARBER-02/03. **Prioridade:** P0. **Estimativa:** 3 pontos. **Áreas:** Backend, Frontend, Database, Testing.
 
 ### BARBER-06 — Testes, segurança e documentação da Sprint 4
 
-- **Objetivo/descrição:** fechar qualidade, atualizar documento funcional futuro separado e comprovar pré-requisito do ambiente E2E sem apontar a DB errada.
-- **Técnico:** adicionar unit/integration/frontend; documentar configuração E2E e executar validação apenas na sprint autorizada.
-- **Subtasks:** (1) testes de serviços/DTOs/guard; (2) testes tenant de entidades Barber; (3) testes frontend dos fluxos centrais; (4) validar configuração `NODE_ENV=test`, host loopback e `POSTGRES_DB` com sufixo `_test`; (5) corrigir configuração fora deste plano, se falhar na Sprint 4; (6) E2E do fluxo de acesso e CRUD principal com PostgreSQL de teste; (7) criar/atualizar docs de implementação Barber.
-- **Aceitação:** E2E só é declarado funcional após execução comprovada na DB dedicada; host não loopback e DB sem `_test` são rejeitados; testes críticos e CI passam; docs refletem estado real.
-- **Dependências:** BARBER-01 a 05. **Prioridade:** P0. **Estimativa:** 5 pontos. **Áreas:** Backend, Frontend, Database, Testing, Infrastructure, Documentation.
+- **Objetivo/descrição:** verificar regras, autorização, integridade e documentação fiel da fundação.
+- **Subtasks:** testes unitários de validação/serviços; integração PostgreSQL para constraints e migrations; matriz de papéis por recurso; testes web/BFF/CSRF; documentação técnica do que estiver implementado.
+- **Aceitação:** testes backend comprovam isolamento e todas as permissões; cobrem profissionais com/sem conta, atribuições, saída Member sem perda de dados, relação N:N, clientes duplicados/autoassociação e acesso contextual; E2E só declarado funcional após execução contra DB de teste isolada; erro E2E anterior não é declarado resolvido sem evidência.
+- **Dependências:** BARBER-01 a BARBER-05. **Prioridade:** P0. **Estimativa:** 5 pontos. **Áreas:** Backend, Frontend, Database, Testing, Infrastructure, Documentation.
 
-**Estimativa total inicial Sprint 4: 26 pontos**; validar com capacidade real da equipa e após decisões. BARBER-03/04/06 podem exigir divisão caso a capacidade da sprint seja limitada, mantendo o escopo de negócio aprovado.
+**Estimativa Sprint 4:** 26 pontos, provisória; dividir BARBER-03/04/06 conforme capacidade sem alterar regras aprovadas.
 
-## 6. Sprint 5 — Barber Scheduling & Operations
+## 7. Sprint 5 — Scheduling & Operations
 
-**Objetivo:** acrescentar agenda operacional sobre os modelos da Sprint 4; não recriar entidades de profissionais, serviços e clientes.
+Objetivo: disponibilidade e operação de marcações sobre entidades Sprint 4. Sem reserva pública, uploads ou descoberta pública.
 
 ### BARBER-07 — Horários e disponibilidade
 
-- **Objetivo/descrição:** definir períodos semanais de trabalho e consultar disponibilidade por profissional/serviço.
-- **Técnico:** representar intervalos locais no timezone organizacional; suportar pausas através de vários intervalos por dia ou decisão equivalente.
-- **Subtasks:** (1) fechar limites, pausas e timezone; (2) modelo/DTO de horários; (3) endpoints de leitura/escrita; (4) editor semanal; (5) cálculo de disponibilidade por profissional e serviço; (6) testes de limites e DST.
-- **Aceitação:** intervalos inválidos não são gravados; serviço só aparece se ativo e associado ao profissional; disponibilidade usa timezone da organização e datas inequívocas.
-- **Dependências:** Sprint 4 e BARBER-03/04. **Prioridade:** P0. **Estimativa:** 5 pontos. **Áreas:** Frontend, Backend, Database, Testing.
+- **Objetivo/descrição:** manter períodos recorrentes e calcular opções de atendimento por serviço/profissional.
+- **Subtasks:** fechar intervalos e pausas; DTO/modelo; endpoints; UI semanal; algoritmo de disponibilidade no timezone organizacional.
+- **Aceitação:** aceita zero ou mais períodos válidos por dia; suporta pausas; serviço só oferece profissionais associados/disponibilizados; autorização de escrita respeita próprio perfil ou atribuição; testes de fronteiras e DST passam.
+- **Dependências:** Sprint 4, especialmente BARBER-03/04. **Prioridade:** P0. **Estimativa:** 5 pontos. **Áreas:** Backend, Frontend, Database, Testing.
 
-### BARBER-08 — Indisponibilidades e exceções
+### BARBER-08 — Indisponibilidades
 
-- **Objetivo/descrição:** registar folgas e indisponibilidades com intervalo temporal.
-- **Técnico:** exceções pertencem à organização e profissional; não apagar agendamentos existentes quando o horário muda.
-- **Subtasks:** (1) modelo e validação intervalar; (2) CRUD de exceções; (3) interface para datas/horas locais; (4) integrar exceções no cálculo de disponibilidade; (5) testes de interseção, DST e tenant.
-- **Aceitação:** exceção bloqueia novas reservas no intervalo; não altera histórico; apenas responsáveis autorizados podem editar.
-- **Dependências:** BARBER-07. **Prioridade:** P0. **Estimativa:** 3 pontos. **Áreas:** Frontend, Backend, Database, Testing.
+- **Objetivo/descrição:** gerir exceções de disponibilidade vinculadas a profissional.
+- **Subtasks:** modelo/validação intervalar; API CRUD; UI de datas/horas; integrar exceções no cálculo.
+- **Aceitação:** intervalos inválidos rejeitados; exceções bloqueiam novas opções durante o período; escrita limitada a Owner/Admin ou Member com responsabilidade própria/atribuída e `barber:write`; alteração não apaga marcações existentes.
+- **Dependências:** BARBER-07. **Prioridade:** P0. **Estimativa:** 3 pontos. **Áreas:** Backend, Frontend, Database, Testing.
 
 ### BARBER-09 — Agendamentos
 
-- **Objetivo/descrição:** gerir agendamento interno com profissional, cliente, serviço e estado aprovado.
-- **Técnico:** guardar instante inequívoco, timezone organizacional para apresentação, snapshot de preço/duração, transições controladas e relações do mesmo tenant.
-- **Subtasks:** (1) fechar estados/transições e políticas; (2) entidade e migration; (3) DTOs/API de criar/listar/editar/cancelar; (4) validar profissional-serviço-cliente e estado ativo; (5) UI de agenda/lista; (6) snapshots de preço/duração; (7) testes de transição e histórico.
-- **Aceitação:** aceita apenas `PENDING`, `CONFIRMED`, `COMPLETED`, `CANCELLED` conforme transições aprovadas; guarda EUR e duração no momento; cancelar preserva registo; relações cross-tenant são rejeitadas.
-- **Dependências:** BARBER-04 a 08. **Prioridade:** P0. **Estimativa:** 8 pontos. **Áreas:** Frontend, Backend, Database, Testing.
+- **Objetivo/descrição:** criar e gerir marcações, distinguindo autor e profissional designado.
+- **Subtasks:** entidade/API e estados; escolha do profissional entre os disponibilizados para serviço; validações tenant/cliente/serviço; snapshots; UI calendário/lista e projeção contextual de cliente.
+- **Aceitação:** cliente escolhe profissional elegível para serviço; grava `createdByUserId` distinto de `professionalId`; Member com write pode gerir se criador ou profissional associado/atribuído; Owner/Admin gerem todas; Member lê nome/contacto/serviço da marcação de outro profissional mas não acede por isso à ficha geral; estados limitados aos quatro aprovados; cancelamento normal mantém histórico; snapshots não mudam quando serviço muda.
+- **Dependências:** BARBER-04/05 e BARBER-07/08. **Prioridade:** P0. **Estimativa:** 8 pontos. **Áreas:** Backend, Frontend, Database, Testing.
 
-### BARBER-10 — Prevenção de conflitos e concorrência
+### BARBER-10 — Conflitos e concorrência
 
-- **Objetivo/descrição:** impedir sobreposição na agenda por regra de negócio e proteção transacional/DB.
-- **Técnico:** testar interseções parciais, contidas e simultâneas; especificar a regra de conflito considerando estados cancelados e buffers aprovados.
-- **Subtasks:** (1) decidir semântica de intervalos e conflito; (2) implementar estratégia de concorrência PostgreSQL; (3) transação para criar/editar; (4) mapear violações para resposta compreensível; (5) testes reais de concorrência no Postgres isolado.
-- **Aceitação:** apenas uma requisição concorrente incompatível é aceite; cancelados deixam de ocupar disponibilidade conforme regra; editar também verifica conflitos; não depende de consulta prévia na UI.
-- **Dependências:** BARBER-07 a 09. **Prioridade:** P0. **Estimativa:** 8 pontos. **Áreas:** Backend, Database, Testing.
+- **Objetivo/descrição:** impedir reservas incompatíveis em criação e edição concorrentes.
+- **Subtasks:** definir fronteiras e estados que ocupam horário; escolher estratégia PostgreSQL; proteger operações em transação; mapear conflitos; teste de corrida.
+- **Aceitação:** conflitos parciais/contidos e edições rejeitados; entre requisições simultâneas incompatíveis apenas uma é aceite; cancelada deixa de ocupar disponibilidade conforme semântica aprovada; decisão usa DB/transação, não consulta da UI.
+- **Dependências:** BARBER-07 a BARBER-09. **Prioridade:** P0. **Estimativa:** 8 pontos. **Áreas:** Backend, Database, Testing.
 
 ### BARBER-11 — Dashboard operacional
 
-- **Objetivo/descrição:** mostrar próximos atendimentos e indicadores básicos derivados de dados existentes.
-- **Técnico:** endpoint agregado, filtros tenant e timezone; sem métricas financeiras não aprovadas.
-- **Subtasks:** (1) fechar indicadores e período; (2) endpoint summary; (3) componente de resumo/próximos; (4) estados vazio/erro/loading; (5) testes tenant e fronteiras de data.
-- **Aceitação:** dados reais e isolados; interpretação de “hoje” usa timezone organizacional; sem dados mostra vazio real.
-- **Dependências:** BARBER-09. **Prioridade:** P1. **Estimativa:** 3 pontos. **Áreas:** Frontend, Backend, Testing.
+- **Objetivo/descrição:** apresentar próximos atendimentos e agregados operacionais reais.
+- **Subtasks:** definir agregados; endpoint tenant-aware; componentes e estados vazios/erro/loading; aplicar projeções de cliente autorizadas.
+- **Aceitação:** dados reais apenas; “hoje” no timezone da organização; não vaza ficha geral do cliente; leitura respeita permissões e marcações removidas pela exclusão profissional não reaparecem.
+- **Dependências:** BARBER-09. **Prioridade:** P1. **Estimativa:** 3 pontos. **Áreas:** Backend, Frontend, Testing.
 
 ### BARBER-12 — E2E, segurança e documentação da Sprint 5
 
-- **Objetivo/descrição:** verificar o fluxo operacional ponta a ponta e documentar comportamento.
-- **Técnico:** PostgreSQL isolado; executar E2E sem credenciais externas nem dados de produção.
-- **Subtasks:** (1) E2E de horário, indisponibilidade, reserva e cancelamento; (2) E2E de conflito concorrente e tenant; (3) rever autorização/retensão; (4) verificar suite API/web, lint, types, build; (5) atualizar documentação Barber e limitações.
-- **Aceitação:** fluxo completo passa em ambiente comprovado; suite não usa banco persistente; estado de integração e limitações está documentado.
-- **Dependências:** BARBER-07 a 11. **Prioridade:** P0. **Estimativa:** 5 pontos. **Áreas:** Frontend, Backend, Database, Testing, Infrastructure, Documentation.
+- **Objetivo/descrição:** validar fluxos operacionais integrados e documentar comportamento real.
+- **Subtasks:** E2E de horário/exceção/marcação/cancelamento; concorrência e tenant; permissões criador/profissional; caso de exclusão Owner-only e preservação de clientes quando o mecanismo for implementado; revisão de documentação.
+- **Aceitação:** cadeia E2E e isolamento comprovados em DB de teste; Owner exclui profissional em transação, Admin é recusado, marcações/histórico operacional ligados são removidos e clientes/dados pessoais ficam intactos sem cascata; documentação não declara como feito o que ainda não está desenvolvido.
+- **Dependências:** BARBER-07 a BARBER-11 e mecanismo de exclusão implementado sob BARBER-03/migration. **Prioridade:** P0. **Estimativa:** 5 pontos. **Áreas:** Backend, Frontend, Database, Testing, Infrastructure, Documentation.
 
-**Estimativa total inicial Sprint 5: 32 pontos**. Reavaliar especialmente BARBER-09/10 após fechar regras temporais e estratégia DB.
+**Estimativa Sprint 5:** 32 pontos, provisória; rever BARBER-09/10 após decisões temporais e de concorrência.
 
-## 7. Matriz de permissões proposta
+## 8. Testes e segurança E2E
 
-Todos os acessos ainda exigem membership, organização ativa e módulo Barber habilitado. A matriz operacional aplica-se no backend, independentemente da UI.
+Cobertura Sprint 4: guards e permissões por entidade; validação tenant por ID; migração/rollback/constraints; profissional com e sem conta; autoassociação de cliente; duplicados; gestão administrativa de atribuições; Member sem autorização não altera associação; saída de Member remove associação e preserva profissional/dados; serviços N:N e projeção contextual.
 
-| Entidade            | Owner/Admin                  | Member com `barber:read` | Member com `barber:write`                                                                                                                 |
-| ------------------- | ---------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Perfil da barbearia | Ler/criar/editar             | Ler                      | Sem escrita por padrão; atribuição explícita de gestão é decisão pendente.                                                                |
-| Perfil profissional | Ler/gerir todos              | Ler todos                | Editar apenas perfil próprio, identificado por profissional associado a `userId`; sem conta requer responsável atribuído.                 |
-| Serviços            | Criar/editar/desativar todos | Ler todos                | Editar apenas serviços com `responsibleProfessionalId` atribuído ao profissional do Member; definir se Member pode criar serviço próprio. |
-| Clientes            | Gerir todos                  | Ler todos                | Criar e editar apenas clientes atribuídos a si; Owner/Admin podem reatribuir.                                                             |
-| Horários            | Gerir horários de todos      | Ler todos                | Editar apenas horário do próprio profissional.                                                                                            |
-| Agendamentos        | Gerir todos                  | Ler todos                | Criar/editar/cancelar apenas os próprios agendamentos ou aqueles pelos quais é responsável.                                               |
+Cobertura Sprint 5: timezone/DST, intervalos/pausas, exceções, profissional escolhido elegível ao serviço, criador distinto do profissional, privilégios de ambos, visibilidade contextual do cliente, snapshots, transições/cancelamento, conflitos e corrida PostgreSQL. Quando exclusão profissional for implementada, testar atomicidade/falha parcial, Owner permitido, Admin recusado, todas as dependências operacionais eliminadas, clientes integralmente preservados e ausência de cascata cliente.
 
-Com `barber:read` apenas, todas as operações de escrita são recusadas. `barber:write` não substitui leitura; atribuições/propriedade precisam de validação explícita. Recomenda-se separar `createdByUserId` de `responsibleProfessionalId` nas entidades em que auditoria e propriedade não significam a mesma coisa.
+### Segurança da base E2E — questão anterior não resolvida
 
-## 8. Testes, qualidade e ambiente E2E
+Erro de validação E2E anteriormente observado: `POSTGRES_DB deve terminar em _test no ambiente de testes.` Não declarar este problema corrigido. A validação atual exige host loopback e nome de DB terminado em `_test` em `NODE_ENV=test`. O Compose confirma serviço isolado `postgres-test`, bind loopback `127.0.0.1:5433`, credenciais `saas_test`/`saas_test_password`, DB `saas_auth_test` e armazenamento temporário; a base de desenvolvimento usa porta `5432`. O script real é `npm.cmd run test:e2e --workspace=apps/api`, que invoca Vitest E2E; a suite executa migrations por `runMigrations()`.
 
-### Cobertura por sprint
-
-- **Sprint 4 unit:** validações dos DTOs, serviços, guard Barber, regra de perfil/member, associações e normalização; migration reversível.
-- **Sprint 4 integração:** CRUD com DB de teste, chaves estrangeiras, isolamento entre organizações, profissionais com/sem conta, duplicados de cliente permitidos, serviço-profissional explícito.
-- **Sprint 4 frontend:** acesso/página, formulário válido/inválido, erro de API, estados de carregamento/vazio, submissão via BFF e controlo de ações por papel.
-- **Sprint 4 E2E:** sessão/CSRF, módulo ativo, permissões, perfil, profissional, serviço, associação e cliente. Executar apenas após pré-requisito de ambiente ficar validado.
-- **Sprint 5 unit/integration:** transições, timezone/DST, intervalos, exceções, snapshots, queries tenant-aware e conflitos, incluindo concorrência em PostgreSQL real.
-- **Sprint 5 E2E:** cadeia completa até agendar e cancelar; tentativas cross-tenant; conflitos parciais/contidos; duas criações simultâneas; mudança de serviço sem mutação do histórico.
-
-### Verificação E2E requerida antes da primeira execução
-
-O código atual exige, em `NODE_ENV=test`, host loopback e `POSTGRES_DB` terminado em `_test`. O Compose documenta DB `saas_auth_test` e a documentação existente configura esse valor. O prompt informa que uma validação anterior falhou devido a `POSTGRES_DB` sem sufixo `_test`; a inspeção confirma que esse valor é rejeitado pelo validador. Não foi possível comprovar a execução funcional nem determinar, a partir do estado do código/documentação, qual variável concreta foi herdada no terminal que falhou. Assim, a Sprint 4 deve reproduzir a falha de forma segura, explicitar todas as variáveis no mesmo processo, verificar `NODE_ENV=test`, `POSTGRES_HOST=127.0.0.1`, `POSTGRES_PORT=5433` e `POSTGRES_DB=saas_auth_test`, e só então executar. Se o comando documentado continuar a falhar, registar o erro real antes de corrigir a configuração; nesta tarefa não houve alteração nem validação.
-
-Comandos disponíveis no repositório — **não executados nesta tarefa**:
+Antes da execução futura, definir no mesmo processo e verificar explicitamente:
 
 ```powershell
-# Base de teste isolada
 docker compose --profile test up -d postgres-test
-
-# No terminal da API, definir os valores explicitamente no processo de teste:
 $env:NODE_ENV = 'test'
 $env:POSTGRES_HOST = '127.0.0.1'
 $env:POSTGRES_PORT = '5433'
@@ -265,85 +225,46 @@ $env:POSTGRES_DB = 'saas_auth_test'
 $env:FRONTEND_BASE_URL = 'http://localhost:3000'
 $env:CORS_ORIGINS = 'http://localhost:3000'
 $env:EMAIL_FROM = 'SaaS Platform <auth@example.test>'
-
-npm.cmd run migration:run --workspace=apps/api
 npm.cmd run test:e2e --workspace=apps/api
-
-# Qualidade disponível na raiz
-npm.cmd test
-npm.cmd run typecheck
-npm.cmd run lint
-npm.cmd run format:check
-npm.cmd run build
-npm.cmd run audit
 ```
 
-Antes de E2E, conferir que as variáveis no terminal apontam para a DB temporária, nunca `saas_db`/porta 5432. Migration de E2E é feita pelo próprio teste via `runMigrations`; o comando separado de migration só é necessário se a estratégia de validação o requerer e deve usar a mesma conexão isolada.
+Nunca apontar E2E/migrations para a base de desenvolvimento na porta 5432. A validação de sufixo `_test` não substitui verificar host, porta e DB dedicados. Se voltar a falhar, registar a configuração não secreta efetivamente recebida e o erro antes de propor correção. Testes E2E não foram executados nesta auditoria documental.
 
-## 9. Plano de estudos associado às Tasks
+## 9. Decisões técnicas ainda pendentes
 
-Não é preciso estudar a stack inteira antes de começar. Ler código equivalente no repositório e estudar o assunto imediatamente antes da Task. Recursos em português recentes devem ser selecionados pelo tema e confirmados quanto à data/versão; as pesquisas públicas nesta auditoria não permitiram confirmar um conjunto de vídeos 2025/2026 que cobrisse fielmente estes fluxos. Evitar recomendar tutoriais desatualizados como referência de API. Complementar com documentação oficial e exemplos existentes no monorepo.
+Não há regras de produto abaixo à espera de aprovação. São refinamentos técnicos, sem autorização para alterar o comportamento aprovado:
 
-### Sprint 4
+| Tema técnico                   | O que falta decidir na implementação                                                                                                                                                                             |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Associação profissional-Member | Cardinalidade, formato da relação, auditoria e transação de remoção ao sair Member                                                                                                                               |
+| Conta opcional do profissional | Constraint/FK apropriada entre profissional, User e organização, preservando a diferença entre conta e atribuição administrativa                                                                                 |
+| Exclusão profissional          | Nulabilidade/referência da associação cliente-profissional, FKs, ordem concreta e transação atómica; o resultado obrigatório é eliminar dados operacionais e preservar clientes, sem preservar marcações ligadas |
+| Perfil e formulários           | Campos exatos, evitando duplicação desnecessária da Organization                                                                                                                                                 |
+| Retenção de clientes/serviços  | Prazo e política legal/operacional antes de produção; sem alterar a exceção aprovada de exclusão de profissional                                                                                                 |
+| Horários                       | Semântica de intervalos, limites, pausas, antecedência e marcações no passado                                                                                                                                    |
+| Conflitos                      | Estratégia PostgreSQL (constraint/locking/transação), buffers e estados que ocupam intervalo                                                                                                                     |
+| E2E                            | Causa da variável efetivamente recebida na falha anterior e evidência de execução posterior contra a DB dedicada                                                                                                 |
 
-| Antes de  | Estudar                                                                                                                                    | Aplicação                                                                                                  |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| BARBER-01 | TypeScript básico/intermédio: tipos de união, tipos de retorno, narrowing; NestJS Module/Controller/Guard; Next App Router e rota dinâmica | Ler guard Developer, decorators de autorização, módulos e landing page; adaptar a integração Barber.       |
-| BARBER-02 | PostgreSQL: PK/FK, unique/check/index, `NULL`; TypeORM Entity/Relation e migrations `up/down`                                              | Modelar tenant, profissional opcional, relações e integridade; focar nos padrões já usados nas migrations. |
-| BARBER-03 | React props/state/form events; formulários acessíveis; validação com DTOs; API REST e estados HTTP                                         | Editores do perfil/profissionais e erros de validação; entender o contrato API antes da UI.                |
-| BARBER-04 | Relações muitos-para-muitos, transações básicas e validação de domínio; valores monetários como decimal/inteiro de cêntimos                | Catálogo e associação explícita; prevenir float monetário e ligações entre tenants.                        |
-| BARBER-05 | formulários e pesquisa simples; minimização de PII e autorização de recurso                                                                | Nome/telefone/email opcional, duplicados aceites e filtros por organização.                                |
-| BARBER-06 | Vitest, mocks vs integração, Supertest, testes de componentes e env vars no PowerShell                                                     | Completar qualidade; testar DB só na instância isolada.                                                    |
-
-### Sprint 5
-
-| Antes de     | Estudar                                                                                           | Aplicação                                                                                                                                        |
-| ------------ | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| BARBER-07    | datas locais vs UTC, IANA timezone, PostgreSQL `timestamptz`, DST; React para inputs de data/hora | Horários recorrentes e interpretação no fuso organizacional.                                                                                     |
-| BARBER-08    | intervalos temporais, limites inclusivos/exclusivos, validação de datas                           | Exceções e como intersetam horários/agendamentos.                                                                                                |
-| BARBER-09    | Nest services/transações, DTOs e máquinas de estado simples; React formulários/listas             | Criar/editar/cancelar e validar transições sem perder snapshots.                                                                                 |
-| BARBER-10    | isolamento/transações PostgreSQL, locks/constraints para intervalos, condições de corrida         | Escolher estratégia DB e demonstrar duas requisições concorrentes com uma só reserva válida. Não estudar otimização avançada até ser necessária. |
-| BARBER-11/12 | componentes React de resumo, testes E2E com Supertest e leitura de logs de CI                     | Dashboard real e fluxo integral de testes.                                                                                                       |
-
-Para vídeos em português recentes, pesquisar no YouTube pelo tema exato (por exemplo “React 19 TypeScript 2025”, “Next.js App Router 2025”, “NestJS TypeORM PostgreSQL 2025”, “PostgreSQL transações 2025”) e confirmar data, versão e conteúdo antes de seguir. Para conceitos sujeitos a mudança, a documentação oficial atual deve prevalecer sobre vídeo. A prioridade é português, mas não há recomendação de vídeo específico nesta versão porque os resultados verificados não confirmaram qualidade/atualidade suficiente para este projeto.
-
-## 10. Decisões pendentes, recomendações e bloqueios
-
-| Decisão/detalhe                                 | Recomendação                                                                                                                                                                                      | Bloqueia                                                                 | Tasks                          |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------ |
-| Proprietário/responsável de serviços e clientes | Guardar criador e responsável profissional separadamente; permitir atribuição Owner/Admin; definir se Member cria serviço próprio                                                                 | Sim, antes das regras de escrita                                         | BARBER-03/04/05; BARBER-09     |
-| Member gerir os próprios registos               | Relacionar user → membership → profissional. Profissional sem conta deve ter responsável explícito; sem responsável, só Owner/Admin edita                                                         | Sim, antes da autorização de escrita                                     | BARBER-03 a 05, BARBER-07 a 09 |
-| Campos do perfil de barbearia/profissional      | Começar com nome de exibição, descrição curta/localização e contactos necessários; não duplicar campos de Organization sem motivo                                                                 | Não bloqueia modelo mínimo; fechar durante refinamento                   | BARBER-03                      |
-| Retenção/exclusão de clientes                   | Soft-delete/arquivamento quando tiver histórico; definir prazo e direito de eliminação com responsável do produto antes de produção                                                               | Política final não bloqueia CRUD inicial; bloqueia eliminação definitiva | BARBER-05, BARBER-09           |
-| Horas, pausas e fronteiras                      | Representar cada dia como zero ou mais intervalos; usar intervalos semiabertos `[início,fim)`; decidir limites de antecedência                                                                    | Não bloqueia S4; bloqueia disponibilidade                                | BARBER-07/08                   |
-| Transições de estado                            | Recomendação: `PENDING→CONFIRMED/CANCELLED`; `CONFIRMED→COMPLETED/CANCELLED`; `COMPLETED` e `CANCELLED` terminais. Reabrir só por correção administrativa auditada, se necessário                 | Não bloqueia S4; bloqueia booking                                        | BARBER-09                      |
-| Cancelamento/reagendamento e passado            | Sem reserva pública nesta fase; definir se operador pode cancelar a qualquer momento, motivo obrigatório e se permite agendar no passado para registo retroativo                                  | Não bloqueia S4; bloqueia critérios de booking                           | BARBER-09                      |
-| Buffer entre serviços                           | Começar sem buffer, mas manter intervalos calculados extensíveis; só adicionar campo/regra quando aprovado                                                                                        | Não bloqueia S4; fecha antes da concorrência S5                          | BARBER-07/10                   |
-| Estratégia DB de conflito                       | Avaliar exclusion constraint PostgreSQL para intervalos de um profissional vs lock/transação; escolher depois de definir intervalos e suporte/extensão operacional. Teste concorrente obrigatório | Não bloqueia S4; bloqueia S5 scheduling                                  | BARBER-10                      |
-| Configuração E2E anterior                       | Repetir validação com env vars explícitas e DB isolada; causa reportada é valor de DB sem `_test`, mas origem do valor efetivo não foi provada                                                    | Pré-requisito de execução E2E S4                                         | BARBER-06/12                   |
-
-Riscos principais: complexidade de concorrência e DST; propriedade de dados operacionais por Member; crescimento do escopo; retenção de dados pessoais; afirmar funcionamento E2E sem execução. Mitigar com decisões antes das Tasks dependentes, testes PostgreSQL reais e critérios de aceite verificáveis.
-
-## 11. Definition of Done
+## 10. Definition of Done
 
 ### Sprint 4
 
-- Módulo acessível apenas para membership válido, organização ativa, módulo Barber habilitado e permissão adequada.
-- Perfil, profissionais com/sem conta, serviços/associações e clientes funcionam sem cruzar tenants.
-- Regras Owner/Admin/Member são cobertas no backend e documentadas por entidade.
-- Migrations explícitas, reversíveis e sem perda de histórico; sem upload público.
-- Testes unitários, integração e frontend críticos passam; E2E apenas marcado como funcional depois de comprovado contra PostgreSQL de teste isolado.
-- Lint, format check, typecheck, build e CI passam ou têm falha documentada/resolvida conforme processo do projeto.
-- Documentação descreve limitações reais e não agenda features futuras como já implementadas.
+- Acesso backend exige membership, organização ativa, módulo ativo e permissão apropriada.
+- Perfil de negócio só pode ser criado/editado por Owner/Admin; perfil próprio e profissionais explicitamente atribuídos respeitam regras Member; profissionais sem conta funcionam.
+- Somente Owner/Admin alteram associações profissional-Member e serviço-profissional; saída Member remove a associação administrativa sem apagar profissional/dados.
+- Serviços mantêm N:N explícito; clientes duplicados são aceites e autoassociados pelo backend na criação Member; Member não consulta/edita fichas alheias.
+- Migrations/constraints impedem referências cross-tenant e deleções destrutivas não aprovadas; sem uploads/descoberta pública.
+- Testes backend cobrem matriz e dados; E2E só declarado funcional após evidência em PostgreSQL de teste isolado.
 
 ### Sprint 5
 
-- Horários, pausas/exceções e agenda usam timezone organizacional e preservam instantes durante DST.
-- Estados, autorização por propriedade, snapshots EUR/duração e histórico respeitam decisões aprovadas.
-- Conflitos e requisições concorrentes são bloqueados no backend/DB e demonstrados em teste PostgreSQL.
-- Dashboard deriva apenas de dados reais e respeita tenant/timezone/permissões.
-- E2E de fluxo completo e isolamento passa na base dedicada; qualidade CI e documentação concluídas.
+- Horários e exceções respeitam profissional, atribuição, timezone e DST.
+- Marcação separa criador e profissional; escolha do cliente é limitada às opções disponibilizadas no serviço; criador e profissional podem gerir de acordo com autorização.
+- Member vê nome/contacto/serviço no contexto das marcações permitidas, sem acesso geral à ficha de cliente; snapshots e estados aprovados funcionam.
+- Conflitos concorrentes são impedidos na API/DB e demonstrados em PostgreSQL real.
+- Exclusão profissional é Owner-only e transacional; apaga profissional e dados operacionais associados, incluindo marcações/histórico, preserva clientes e dados pessoais integralmente e remove associações sem cascata para cliente.
+- Dashboard, E2E, isolamento, documentação e verificações de qualidade refletem comportamento observado; erro E2E anterior não é declarado resolvido sem evidência.
 
-## 12. Ficheiros e alterações desta tarefa
+## 11. Registo da auditoria
 
-Planeamento documentado neste ficheiro. O estado funcional do repositório não foi alterado. Foram apenas inspecionados arquivos e criada esta documentação de planeamento autorizada; nenhum código funcional, migration, configuração ou dependência foi alterado. Nenhum teste/comando de validação foi executado; branch, commits e ficheiros não rastreados foram preservados.
+Este plano orienta trabalho futuro; não afirma que funcionalidade, exclusão ou E2E estejam implementados. A exclusão profissional aprovada apaga os dados operacionais associados e marcações, mas preserva clientes. A saída de Member remove apenas a relação administrativa e preserva profissional/dados. São fluxos distintos. Detalhes de schema/transação permanecem técnicos e não alteram estes resultados. Apenas este documento está no âmbito de edição desta auditoria.
