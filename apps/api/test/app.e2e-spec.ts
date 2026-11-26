@@ -833,6 +833,452 @@ describe('Authentication and authorization (e2e)', () => {
     ).expect(200);
   });
 
+  it('calculates availability, rejects concurrent bookings, preserves snapshots and respects exception lifecycle', async () => {
+    const owner = await createVerifiedUser(
+      'barber-scheduling-owner@example.test',
+    );
+    const slug = (await owner.get('/auth/me').expect(200)).body.memberships[0]
+      .organizationSlug as string;
+    await withCsrf(owner.patch(`/organizations/${slug}/modules`))
+      .send({ key: 'barber', enabled: true })
+      .expect(200);
+    const professional = await withCsrf(
+      owner.post(`/organizations/${slug}/barber/professionals`),
+    )
+      .send({ displayName: 'Scheduling Professional' })
+      .expect(201);
+    const service = await withCsrf(
+      owner.post(`/organizations/${slug}/barber/services`),
+    )
+      .send({ name: 'Test Service', priceCents: 2700, durationMinutes: 30 })
+      .expect(201);
+    await withCsrf(
+      owner.put(`/organizations/${slug}/barber/professional-services`),
+    )
+      .send({
+        professionalId: professional.body.id,
+        serviceId: service.body.id,
+        enabled: true,
+      })
+      .expect(200);
+    const client = await withCsrf(
+      owner.post(`/organizations/${slug}/barber/clients`),
+    )
+      .send({ fullName: 'Scheduling Client', phone: '+351 910 000 099' })
+      .expect(201);
+
+    const target = new Date(Date.now() + 4 * 86_400_000);
+    const dateParts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Lisbon',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(target);
+    const dateValues = Object.fromEntries(
+      dateParts.map((part) => [part.type, part.value]),
+    );
+    const localDate = `${dateValues.year}-${dateValues.month}-${dateValues.day}`;
+    const weekday = new Date(`${localDate}T00:00:00Z`).getUTCDay();
+    const periods = [
+      { weekday, startTime: '09:00', endTime: '12:00' },
+      { weekday, startTime: '14:00', endTime: '17:00' },
+    ];
+    await withCsrf(owner.put(`/organizations/${slug}/barber/working-hours`))
+      .send({ periods })
+      .expect(200);
+    await withCsrf(owner.put(`/organizations/${slug}/barber/working-hours`))
+      .send({ professionalId: professional.body.id, periods })
+      .expect(200);
+    const query = new URLSearchParams({
+      serviceId: service.body.id,
+      professionalId: professional.body.id,
+      date: localDate,
+    });
+    const available = await owner
+      .get(`/organizations/${slug}/barber/availability?${query}`)
+      .expect(200);
+    expect(
+      available.body.some(
+        (slot: { startTime: string }) => slot.startTime === '10:00',
+      ),
+    ).toBe(true);
+    expect(
+      available.body.some(
+        (slot: { startTime: string }) => slot.startTime === '12:00',
+      ),
+    ).toBe(false);
+
+    const payload = {
+      clientId: client.body.id,
+      professionalId: professional.body.id,
+      serviceId: service.body.id,
+      date: localDate,
+      startTime: '10:00',
+    };
+    const [first, second] = await Promise.all([
+      withCsrf(owner.post(`/organizations/${slug}/barber/appointments`)).send(
+        payload,
+      ),
+      withCsrf(owner.post(`/organizations/${slug}/barber/appointments`)).send(
+        payload,
+      ),
+    ]);
+    expect([first.status, second.status].sort((a, b) => a - b)).toEqual([
+      201, 409,
+    ]);
+    const created = first.status === 201 ? first.body : second.body;
+    const overlap = first.status === 409 ? first : second;
+    expect(overlap.body.message).toMatch(/already has an appointment/);
+    const rescheduleAvailability = new URLSearchParams(query);
+    rescheduleAvailability.set('excludingAppointmentId', created.id);
+    const slotsForRebooking = await owner
+      .get(
+        `/organizations/${slug}/barber/availability?${rescheduleAvailability}`,
+      )
+      .expect(200);
+    expect(
+      slotsForRebooking.body.some(
+        (slot: { startTime: string }) => slot.startTime === '10:00',
+      ),
+    ).toBe(true);
+    await withCsrf(
+      owner.put(`/organizations/${slug}/barber/appointments/${created.id}`),
+    )
+      .send({ ...payload, startTime: '10:30' })
+      .expect(200);
+    const afterRebooking = await owner
+      .get(`/organizations/${slug}/barber/availability?${query}`)
+      .expect(200);
+    expect(
+      afterRebooking.body.some(
+        (slot: { startTime: string }) => slot.startTime === '10:00',
+      ),
+    ).toBe(true);
+    expect(
+      afterRebooking.body.some(
+        (slot: { startTime: string }) => slot.startTime === '10:30',
+      ),
+    ).toBe(false);
+
+    const exceptionPayload = {
+      professionalId: professional.body.id,
+      type: 'ABSENCE',
+      date: localDate,
+      startTime: '10:30',
+      endDate: localDate,
+      endTime: '11:00',
+      reason: 'Conflict review',
+    };
+    const blockedException = await withCsrf(
+      owner.post(`/organizations/${slug}/barber/availability-exceptions`),
+    )
+      .send(exceptionPayload)
+      .expect(409);
+    expect(blockedException.body.conflicts).toHaveLength(1);
+
+    await withCsrf(
+      owner.put(`/organizations/${slug}/barber/services/${service.body.id}`),
+    )
+      .send({ name: 'Renamed Service', priceCents: 9000, durationMinutes: 45 })
+      .expect(200);
+    const historical = await owner
+      .get(`/organizations/${slug}/barber/appointments/${created.id}`)
+      .expect(200);
+    expect(historical.body.serviceNameSnapshot).toBe('Test Service');
+    expect(historical.body.priceCentsSnapshot).toBe(2700);
+    expect(historical.body.durationMinutesSnapshot).toBe(30);
+
+    await withCsrf(
+      owner.patch(
+        `/organizations/${slug}/barber/appointments/${created.id}/status`,
+      ),
+    )
+      .send({ status: 'CANCELLED' })
+      .expect(200);
+    const afterCancel = await owner
+      .get(`/organizations/${slug}/barber/availability?${query}`)
+      .expect(200);
+    expect(
+      afterCancel.body.some(
+        (slot: { startTime: string }) => slot.startTime === '10:30',
+      ),
+    ).toBe(true);
+    const exception = await withCsrf(
+      owner.post(`/organizations/${slug}/barber/availability-exceptions`),
+    )
+      .send(exceptionPayload)
+      .expect(201);
+    const whileBlocked = await owner
+      .get(`/organizations/${slug}/barber/availability?${query}`)
+      .expect(200);
+    expect(
+      whileBlocked.body.some(
+        (slot: { startTime: string }) => slot.startTime === '10:30',
+      ),
+    ).toBe(false);
+    await withCsrf(
+      owner.delete(
+        `/organizations/${slug}/barber/availability-exceptions/${exception.body.id}`,
+      ),
+    ).expect(200);
+    const restored = await owner
+      .get(`/organizations/${slug}/barber/availability?${query}`)
+      .expect(200);
+    expect(
+      restored.body.some(
+        (slot: { startTime: string }) => slot.startTime === '10:30',
+      ),
+    ).toBe(true);
+  });
+
+  it('scopes appointment reads and dashboard to authorized professionals for Members', async () => {
+    const owner = await createVerifiedUser(
+      'barber-read-scope-owner@example.test',
+    );
+    const admin = await createVerifiedUser(
+      'barber-read-scope-admin@example.test',
+    );
+    const member = await createVerifiedUser(
+      'barber-read-scope-member@example.test',
+    );
+    const otherOwner = await createVerifiedUser(
+      'barber-read-scope-outsider@example.test',
+    );
+    const slug = (await owner.get('/auth/me').expect(200)).body.memberships[0]
+      .organizationSlug as string;
+    const memberId = (await member.get('/auth/me').expect(200)).body
+      .id as string;
+
+    await withCsrf(owner.post(`/organizations/${slug}/members`))
+      .send({ email: 'barber-read-scope-admin@example.test', role: 'admin' })
+      .expect(201);
+    await withCsrf(owner.post(`/organizations/${slug}/members`))
+      .send({ email: 'barber-read-scope-member@example.test', role: 'member' })
+      .expect(201);
+    await withCsrf(
+      owner.patch(`/organizations/${slug}/members/${memberId}/permissions`),
+    )
+      .send({ permissions: ['barber:read', 'barber:write'] })
+      .expect(200);
+    await withCsrf(owner.patch(`/organizations/${slug}/modules`))
+      .send({ key: 'barber', enabled: true })
+      .expect(200);
+
+    const memberProfessional = await withCsrf(
+      owner.post(`/organizations/${slug}/barber/professionals`),
+    )
+      .send({ displayName: 'Authorized Professional', userId: memberId })
+      .expect(201);
+    const managedProfessional = await withCsrf(
+      owner.post(`/organizations/${slug}/barber/professionals`),
+    )
+      .send({ displayName: 'Managed Professional' })
+      .expect(201);
+    const otherProfessional = await withCsrf(
+      owner.post(`/organizations/${slug}/barber/professionals`),
+    )
+      .send({ displayName: 'Private Professional' })
+      .expect(201);
+    await withCsrf(
+      owner.put(`/organizations/${slug}/barber/professional-managers`),
+    )
+      .send({
+        professionalId: managedProfessional.body.id,
+        userId: memberId,
+        enabled: true,
+      })
+      .expect(200);
+    const service = await withCsrf(
+      owner.post(`/organizations/${slug}/barber/services`),
+    )
+      .send({
+        name: 'Read Scope Service',
+        priceCents: 2500,
+        durationMinutes: 30,
+      })
+      .expect(201);
+    for (const professionalId of [
+      memberProfessional.body.id as string,
+      managedProfessional.body.id as string,
+      otherProfessional.body.id as string,
+    ]) {
+      await withCsrf(
+        owner.put(`/organizations/${slug}/barber/professional-services`),
+      )
+        .send({ professionalId, serviceId: service.body.id, enabled: true })
+        .expect(200);
+    }
+    const memberClient = await withCsrf(
+      owner.post(`/organizations/${slug}/barber/clients`),
+    )
+      .send({
+        fullName: 'Member Portfolio Client',
+        phone: '+351 910 000 101',
+        responsibleProfessionalId: memberProfessional.body.id,
+      })
+      .expect(201);
+    const privateClient = await withCsrf(
+      owner.post(`/organizations/${slug}/barber/clients`),
+    )
+      .send({
+        fullName: 'Private Portfolio Client',
+        phone: '+351 910 000 102',
+        responsibleProfessionalId: otherProfessional.body.id,
+      })
+      .expect(201);
+    const managedClient = await withCsrf(
+      owner.post(`/organizations/${slug}/barber/clients`),
+    )
+      .send({
+        fullName: 'Managed Portfolio Client',
+        phone: '+351 910 000 103',
+        responsibleProfessionalId: managedProfessional.body.id,
+      })
+      .expect(201);
+
+    const target = new Date(Date.now() + 4 * 86_400_000);
+    const dateParts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Lisbon',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(target);
+    const dateValues = Object.fromEntries(
+      dateParts.map((part) => [part.type, part.value]),
+    );
+    const localDate = `${dateValues.year}-${dateValues.month}-${dateValues.day}`;
+    const weekday = new Date(`${localDate}T00:00:00Z`).getUTCDay();
+    const periods = [{ weekday, startTime: '09:00', endTime: '17:00' }];
+    await withCsrf(owner.put(`/organizations/${slug}/barber/working-hours`))
+      .send({ periods })
+      .expect(200);
+    for (const professionalId of [
+      memberProfessional.body.id as string,
+      managedProfessional.body.id as string,
+      otherProfessional.body.id as string,
+    ]) {
+      await withCsrf(owner.put(`/organizations/${slug}/barber/working-hours`))
+        .send({ professionalId, periods })
+        .expect(200);
+    }
+
+    const appointment = async (
+      clientId: string,
+      professionalId: string,
+      startTime: string,
+    ) =>
+      withCsrf(owner.post(`/organizations/${slug}/barber/appointments`))
+        .send({
+          clientId,
+          professionalId,
+          serviceId: service.body.id,
+          date: localDate,
+          startTime,
+        })
+        .expect(201);
+    const authorizedAppointment = await appointment(
+      memberClient.body.id as string,
+      memberProfessional.body.id as string,
+      '10:00',
+    );
+    const managedAppointment = await appointment(
+      managedClient.body.id as string,
+      managedProfessional.body.id as string,
+      '11:00',
+    );
+    const privateAppointment = await appointment(
+      privateClient.body.id as string,
+      otherProfessional.body.id as string,
+      '12:00',
+    );
+
+    const appointmentsPath = `/organizations/${slug}/barber/appointments`;
+    expect((await owner.get(appointmentsPath).expect(200)).body).toHaveLength(
+      3,
+    );
+    expect((await admin.get(appointmentsPath).expect(200)).body).toHaveLength(
+      3,
+    );
+    const memberAppointments = await member.get(appointmentsPath).expect(200);
+    expect(memberAppointments.body).toHaveLength(2);
+    expect(
+      memberAppointments.body.map((item: { id: string }) => item.id),
+    ).toEqual(
+      expect.arrayContaining([
+        authorizedAppointment.body.id,
+        managedAppointment.body.id,
+      ]),
+    );
+    expect(JSON.stringify(memberAppointments.body)).not.toContain(
+      'Private Portfolio Client',
+    );
+    expect(
+      (
+        await member
+          .get(
+            `${appointmentsPath}?professionalId=${otherProfessional.body.id}`,
+          )
+          .expect(200)
+      ).body,
+    ).toHaveLength(0);
+    expect(
+      (
+        await member
+          .get(`${appointmentsPath}?clientId=${privateClient.body.id}`)
+          .expect(200)
+      ).body,
+    ).toHaveLength(0);
+
+    await member
+      .get(`${appointmentsPath}/${authorizedAppointment.body.id}`)
+      .expect(200);
+    await member
+      .get(`${appointmentsPath}/${privateAppointment.body.id}`)
+      .expect(404);
+    await withCsrf(
+      member.patch(
+        `${appointmentsPath}/${authorizedAppointment.body.id}/status`,
+      ),
+    )
+      .send({ status: 'CONFIRMED' })
+      .expect(200);
+    await withCsrf(
+      member.patch(`${appointmentsPath}/${privateAppointment.body.id}/status`),
+    )
+      .send({ status: 'CANCELLED' })
+      .expect(404);
+
+    const ownerDashboard = await owner
+      .get(`/organizations/${slug}/barber/dashboard`)
+      .expect(200);
+    const adminDashboard = await admin
+      .get(`/organizations/${slug}/barber/dashboard`)
+      .expect(200);
+    const memberDashboard = await member
+      .get(`/organizations/${slug}/barber/dashboard`)
+      .expect(200);
+    expect(ownerDashboard.body.upcoming).toHaveLength(3);
+    expect(adminDashboard.body.upcoming).toHaveLength(3);
+    expect(memberDashboard.body.upcoming).toHaveLength(2);
+    expect(
+      memberDashboard.body.upcoming.map((item: { id: string }) => item.id),
+    ).toEqual(
+      expect.arrayContaining([
+        authorizedAppointment.body.id,
+        managedAppointment.body.id,
+      ]),
+    );
+    expect(JSON.stringify(memberDashboard.body)).not.toContain(
+      'Private Portfolio Client',
+    );
+
+    await otherOwner
+      .get(`${appointmentsPath}/${authorizedAppointment.body.id}`)
+      .expect(404);
+    await otherOwner.get(appointmentsPath).expect(404);
+    await otherOwner.get(`/organizations/${slug}/barber/dashboard`).expect(404);
+  });
+
   it('scopes client operations to the responsible professional and preserves clients when the professional is deleted', async () => {
     const owner = await createVerifiedUser('barber-data-owner@example.test');
     const admin = await createVerifiedUser('barber-data-admin@example.test');

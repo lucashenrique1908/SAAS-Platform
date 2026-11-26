@@ -14,10 +14,14 @@ import {
   BarberProfessionalManager,
   BarberProfessionalService,
   BarberService,
+  BarberWorkingHours,
+  BarberAvailabilityException,
+  BarberAppointment,
 } from './barber.entities.js';
 import { BarberController } from './barber.controller.js';
 import { BarberCustomerController } from './barber-customer.controller.js';
 import { BarberServiceLayer } from './barber.service.js';
+import { BarberSchedulingService } from './barber-scheduling.service.js';
 
 @Module({
   imports: [
@@ -33,9 +37,17 @@ import { BarberServiceLayer } from './barber.service.js';
       BarberService,
       BarberProfessionalService,
       BarberClient,
+      BarberWorkingHours,
+      BarberAvailabilityException,
+      BarberAppointment,
     ]),
   ],
   controllers: [BarberController, BarberCustomerController],
-  providers: [OrganizationAccessGuard, BarberAccessGuard, BarberServiceLayer],
+  providers: [
+    OrganizationAccessGuard,
+    BarberAccessGuard,
+    BarberServiceLayer,
+    BarberSchedulingService,
+  ],
 })
 export class BarberModule {}
