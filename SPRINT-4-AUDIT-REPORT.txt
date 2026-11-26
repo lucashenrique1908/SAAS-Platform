@@ -1,0 +1,48 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20261117152020
+Username: LUCAS2026\conta
+RunAs User: LUCAS2026\conta
+Configuration Name: 
+Machine: LUCAS2026 (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe -noexit -command try { . "c:\Users\conta\AppData\Local\Programs\Microsoft VS Code\69047191fc\resources\app\out\vs\workbench\contrib\terminal\common\scripts\shellIntegration.ps1" } catch {}
+Process ID: 18084
+PSVersion: 5.1.26100.9818
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.9818
+BuildVersion: 10.0.26100.9818
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is SPRINT-4-AUDIT-REPORT.txt
+
+========== 1. BRANCH ATUAL ==========
+
+
+========== 2. ESTADO DO GIT ==========
+
+
+========== 3. ULTIMOS COMMITS ==========
+
+
+========== 4. DIFERENCA EM RELACAO A DEVELOP ==========
+
+
+========== 5. ESTRUTURA DOS MODULOS ==========
+
+
+========== 6. DOCUMENTACAO ==========
+
+========== 7. ENTIDADES DO BACKEND ==========
+
+========== 8. MIGRATIONS ==========
+
+========== 9. DOCUMENTACAO DO DEVELOPER MODULE ==========
+
+========== 10. RESUMO DO PACKAGE ROOT ==========
+**********************
+Windows PowerShell transcript end
+End time: 20261117152136
+**********************

@@ -38,7 +38,7 @@ export default function LoginPage() {
               activeOrganizationSlug: string | null;
             }>("me");
             if (profile.memberships.length === 0) {
-              router.push("/onboarding");
+              router.push("/customer");
             } else {
               const organization =
                 profile.memberships.find(

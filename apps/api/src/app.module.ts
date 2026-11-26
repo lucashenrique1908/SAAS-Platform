@@ -18,6 +18,7 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { OrganizationsModule } from './organizations/organizations.module.js';
 import { DevelopersModule } from './developers/developers.module.js';
+import { BarberModule } from './barber/barber.module.js';
 import {
   shouldLoadLocalEnvFile,
   validatePostgresEnvironment,
@@ -64,6 +65,7 @@ import {
     AuthModule,
     OrganizationsModule,
     DevelopersModule,
+    BarberModule,
   ],
   controllers: [AppController],
   providers: [

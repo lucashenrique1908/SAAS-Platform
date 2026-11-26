@@ -57,6 +57,24 @@ export default function ModuleLandingPage({
         </Link>
       </section>
     );
+  if (key === "barber")
+    return (
+      <section className="mx-auto max-w-3xl space-y-4">
+        <p className="text-sm text-muted-foreground">
+          {workspace.organization.name}
+        </p>
+        <h1 className="text-3xl font-semibold">Barber</h1>
+        <p className="text-muted-foreground">
+          Perfil, profissionais, serviços e clientes da barbearia.
+        </p>
+        <Link
+          className="inline-flex rounded-md bg-primary px-4 py-2 text-primary-foreground"
+          href={`/workspace/${workspace.organization.slug}/barber`}
+        >
+          Abrir Barber
+        </Link>
+      </section>
+    );
   return (
     <section className="mx-auto max-w-3xl space-y-4">
       <p className="text-sm text-muted-foreground">
