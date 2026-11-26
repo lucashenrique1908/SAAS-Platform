@@ -6,6 +6,8 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Patch,
+  Query,
   Put,
   Req,
   UseGuards,
@@ -24,13 +26,22 @@ import {
   ProfessionalManagerDto,
   ProfessionalServiceDto,
   ServiceDto,
+  AppointmentDto,
+  AppointmentStatusDto,
+  AvailabilityExceptionDto,
+  AvailabilityQueryDto,
+  ReplaceWorkingHoursDto,
 } from './barber.dto.js';
 import { BarberServiceLayer } from './barber.service.js';
+import { BarberSchedulingService } from './barber-scheduling.service.js';
 
 @Controller('organizations/:slug/barber')
 @UseGuards(OrganizationAccessGuard, BarberAccessGuard)
 export class BarberController {
-  constructor(private readonly barber: BarberServiceLayer) {}
+  constructor(
+    private readonly barber: BarberServiceLayer,
+    private readonly scheduling: BarberSchedulingService,
+  ) {}
   private context(req: AuthenticatedRequest) {
     return {
       org: req.organization!.id,
@@ -191,5 +202,195 @@ export class BarberController {
   @RequireOrganizationRoles('owner', 'admin')
   professionalManagers(@Req() req: AuthenticatedRequest) {
     return this.barber.listProfessionalManagers(req.organization!.id);
+  }
+
+  @Get('working-hours')
+  @RequireModulePermissions('barber:read')
+  workingHours(
+    @Req() req: AuthenticatedRequest,
+    @Query('professionalId') professionalId?: string,
+  ) {
+    return this.scheduling.getWorkingHours(
+      req.organization!.id,
+      professionalId,
+    );
+  }
+
+  @Put('working-hours')
+  @RequireModulePermissions('barber:write')
+  replaceWorkingHours(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: ReplaceWorkingHoursDto,
+  ) {
+    return this.scheduling.replaceWorkingHours(
+      req.organization!.id,
+      req.authUser!.id,
+      req.organizationMembership!,
+      dto.professionalId ?? null,
+      dto.periods,
+    );
+  }
+
+  @Get('availability')
+  @RequireModulePermissions('barber:read')
+  availability(
+    @Req() req: AuthenticatedRequest,
+    @Query() query: AvailabilityQueryDto,
+  ) {
+    return this.scheduling.availability(req.organization!.id, query);
+  }
+
+  @Get('availability-exceptions')
+  @RequireModulePermissions('barber:read')
+  availabilityExceptions(
+    @Req() req: AuthenticatedRequest,
+    @Query() query: { from?: string; to?: string; professionalId?: string },
+  ) {
+    return this.scheduling.listExceptions(req.organization!.id, query);
+  }
+
+  @Get('availability-exceptions/:id')
+  @RequireModulePermissions('barber:read')
+  availabilityException(
+    @Req() req: AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.scheduling.getException(req.organization!.id, id);
+  }
+
+  @Post('availability-exceptions')
+  @RequireModulePermissions('barber:write')
+  createAvailabilityException(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: AvailabilityExceptionDto,
+  ) {
+    return this.scheduling.createException(
+      req.organization!.id,
+      req.authUser!.id,
+      req.organizationMembership!,
+      dto,
+    );
+  }
+
+  @Put('availability-exceptions/:id')
+  @RequireModulePermissions('barber:write')
+  updateAvailabilityException(
+    @Req() req: AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AvailabilityExceptionDto,
+  ) {
+    return this.scheduling.updateException(
+      req.organization!.id,
+      id,
+      req.authUser!.id,
+      req.organizationMembership!,
+      dto,
+    );
+  }
+
+  @Delete('availability-exceptions/:id')
+  @RequireModulePermissions('barber:write')
+  deleteAvailabilityException(
+    @Req() req: AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.scheduling.removeException(
+      req.organization!.id,
+      id,
+      req.authUser!.id,
+      req.organizationMembership!,
+    );
+  }
+
+  @Get('appointments')
+  @RequireModulePermissions('barber:read')
+  appointments(
+    @Req() req: AuthenticatedRequest,
+    @Query()
+    query: {
+      from?: string;
+      to?: string;
+      date?: string;
+      professionalId?: string;
+      clientId?: string;
+      status?: string;
+    },
+  ) {
+    return this.scheduling.listAppointments(
+      req.organization!.id,
+      req.authUser!.id,
+      req.organizationMembership!,
+      query,
+    );
+  }
+
+  @Get('appointments/:id')
+  @RequireModulePermissions('barber:read')
+  appointment(
+    @Req() req: AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.scheduling.getAppointment(
+      req.organization!.id,
+      id,
+      req.authUser!.id,
+      req.organizationMembership!,
+    );
+  }
+
+  @Post('appointments')
+  @RequireModulePermissions('barber:write')
+  createAppointment(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: AppointmentDto,
+  ) {
+    return this.scheduling.createAppointment(
+      req.organization!.id,
+      req.authUser!.id,
+      req.organizationMembership!,
+      dto,
+    );
+  }
+
+  @Put('appointments/:id')
+  @RequireModulePermissions('barber:write')
+  updateAppointment(
+    @Req() req: AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AppointmentDto,
+  ) {
+    return this.scheduling.updateAppointment(
+      req.organization!.id,
+      id,
+      req.authUser!.id,
+      req.organizationMembership!,
+      dto,
+    );
+  }
+
+  @Patch('appointments/:id/status')
+  @RequireModulePermissions('barber:write')
+  appointmentStatus(
+    @Req() req: AuthenticatedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AppointmentStatusDto,
+  ) {
+    return this.scheduling.changeAppointmentStatus(
+      req.organization!.id,
+      id,
+      req.authUser!.id,
+      req.organizationMembership!,
+      dto.status,
+    );
+  }
+
+  @Get('dashboard')
+  @RequireModulePermissions('barber:read')
+  dashboard(@Req() req: AuthenticatedRequest) {
+    return this.scheduling.dashboard(
+      req.organization!.id,
+      req.authUser!.id,
+      req.organizationMembership!,
+    );
   }
 }

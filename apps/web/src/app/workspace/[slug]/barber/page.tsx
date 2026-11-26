@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useWorkspace } from "@/components/workspace/workspace-shell";
 import { DurationField, MoneyField } from "@/components/shared/value-fields";
 import { formatDuration, formatMoney, parseDuration } from "@/lib/value-format";
+import { BarberOperations } from "@/components/barber/barber-operations";
 
 type Item = { id: string; [key: string]: string | number | boolean | null };
 type MemberItem = {
@@ -267,6 +268,12 @@ export default function BarberWorkspacePage() {
         </p>
       ) : (
         <>
+          <BarberOperations
+            slug={slug}
+            canWrite={canWrite}
+            canAdmin={canAdmin}
+            editableProfessionalIds={editableProfessionalIds}
+          />
           <section className="rounded-xl border bg-card p-5">
             <h2 className="text-xl font-semibold">Perfil da barbearia</h2>
             {profile ? (

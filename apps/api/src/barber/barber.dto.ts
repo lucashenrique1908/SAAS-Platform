@@ -2,14 +2,21 @@ import {
   IsBoolean,
   IsEmail,
   IsInt,
+  IsIn,
   IsOptional,
   IsString,
   IsTimeZone,
+  IsDateString,
+  Matches,
   IsUUID,
+  IsArray,
+  ArrayMaxSize,
+  ValidateNested,
   Max,
   MaxLength,
   Min,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class BusinessProfileDto {
   @IsString() @MaxLength(160) businessName!: string;
@@ -54,4 +61,51 @@ export class ProfessionalManagerDto {
   @IsUUID() professionalId!: string;
   @IsUUID() userId!: string;
   @IsBoolean() enabled!: boolean;
+}
+
+export class WorkingHoursDto {
+  @IsOptional() @IsUUID() professionalId?: string | null;
+  @IsInt() @Min(0) @Max(6) weekday!: number;
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/) startTime!: string;
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/) endTime!: string;
+}
+
+export class ReplaceWorkingHoursDto {
+  @IsOptional() @IsUUID() professionalId?: string | null;
+  @IsArray()
+  @ArrayMaxSize(56)
+  @ValidateNested({ each: true })
+  @Type(() => WorkingHoursDto)
+  periods!: WorkingHoursDto[];
+}
+
+export class AvailabilityQueryDto {
+  @IsUUID() serviceId!: string;
+  @IsDateString() date!: string;
+  @IsOptional() @IsUUID() professionalId?: string;
+  @IsOptional() @IsUUID() excludingAppointmentId?: string;
+}
+
+export class AvailabilityExceptionDto {
+  @IsOptional() @IsUUID() professionalId?: string | null;
+  @IsIn(['DAY_OFF', 'VACATION', 'ABSENCE', 'APPOINTMENT', 'BLOCK'])
+  type!: string;
+  @IsOptional() @IsString() @MaxLength(2000) reason?: string | null;
+  @IsDateString({ strict: true }) date!: string;
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/) startTime!: string;
+  @IsDateString({ strict: true }) endDate!: string;
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/) endTime!: string;
+}
+
+export class AppointmentDto {
+  @IsUUID() clientId!: string;
+  @IsUUID() professionalId!: string;
+  @IsUUID() serviceId!: string;
+  @IsDateString({ strict: true }) date!: string;
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/) startTime!: string;
+  @IsOptional() @IsString() @MaxLength(4000) notes?: string | null;
+}
+
+export class AppointmentStatusDto {
+  @IsIn(['CONFIRMED', 'COMPLETED', 'CANCELLED']) status!: string;
 }
