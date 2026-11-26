@@ -460,6 +460,14 @@ export class OrganizationsService {
       await manager
         .getRepository(OrganizationMembership)
         .delete({ id: target.id });
+      await manager.query(
+        'DELETE FROM "barber_professional_managers" WHERE "organization_id" = $1 AND "user_id" = $2',
+        [organization.id, targetUserId],
+      );
+      await manager.query(
+        'UPDATE "barber_professionals" SET "user_id" = NULL WHERE "organization_id" = $1 AND "user_id" = $2',
+        [organization.id, targetUserId],
+      );
       await manager
         .getRepository(AuthSession)
         .update(
@@ -487,6 +495,14 @@ export class OrganizationsService {
       await manager
         .getRepository(OrganizationMembership)
         .delete({ id: membership.id });
+      await manager.query(
+        'DELETE FROM "barber_professional_managers" WHERE "organization_id" = $1 AND "user_id" = $2',
+        [organization.id, actorId],
+      );
+      await manager.query(
+        'UPDATE "barber_professionals" SET "user_id" = NULL WHERE "organization_id" = $1 AND "user_id" = $2',
+        [organization.id, actorId],
+      );
       await manager
         .getRepository(AuthSession)
         .update(

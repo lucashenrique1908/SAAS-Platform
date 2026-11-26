@@ -1,0 +1,546 @@
+﻿
+============================================================
+1. IDENTIFICACAO DO PROJETO
+============================================================
+Projeto: C:\Users\conta\Desktop\SAAS\SAAS-Platform
+Data: 2026-11-17 17:41:30
+Branch: feature/sprint-4
+
+============================================================
+2. ESTADO DO GIT
+============================================================
+## feature/sprint-4...origin/feature/sprint-4
+?? SPRINT-4-AUDIT-REPORT.txt
+?? artifacts/
+?? docs/SPRINT_4_5_BARBER_PLAN.md
+
+
+============================================================
+3. ULTIMOS 15 COMMITS
+============================================================
+fedd230 (HEAD -> feature/sprint-4, origin/feature/sprint-4, origin/develop, develop) Merge pull request #9 from lucashenrique1908/feature/sprint-3-finalization
+7a4d09c (origin/feature/sprint-3-finalization, feature/sprint-3-finalization) chore(sprint-3): save finalization progress
+c0a59bf chore(sprint-3): save finalization progress
+e78033d Merge pull request #7 from lucashenrique1908/new-features/authentication-authorization
+e33e321 (origin/new-features/authentication-authorization, new-features/authentication-authorization) feat(organizations): implement organization workspace management
+d277bb0 Merge pull request #6 from lucashenrique1908/new-features/authentication-authorization
+3833fa5 feat(auth): implement authentication and authorization
+138cf2c (new-features/quality-ci-setup) Merge pull request #5 from lucashenrique1908/new-features/quality-ci-setup
+2af604e (origin/new-features/quality-ci-setup) fix: resolve layout typecheck in clean CI
+d881b88 chore: configure quality checks and CI pipeline
+3913a3c Merge pull request #4 from lucashenrique1908/new-features/git-workflow-setup
+010f8ae (origin/new-features/git-workflow-setup, new-features/git-workflow-setup) docs: establish Git workflow and pull request template
+7b23254 Merge pull request #3 from lucashenrique1908/new-features/environment-configuration
+c08048f (origin/new-features/environment-configuration, new-features/environment-configuration) feat: configure environment validation and document setup
+e529e3a Merge pull request #2 from lucashenrique1908/new-features/postgresql-typeorm-setup
+
+
+============================================================
+4. BRANCH E SINCRONIZACAO
+============================================================
+Branch local:
+feature/sprint-4
+
+Tracking:
+## feature/sprint-4...origin/feature/sprint-4 ?? SPRINT-4-AUDIT-REPORT.txt ?? artifacts/ ?? docs/SPRINT_4_5_BARBER_PLAN.md
+
+Branches relevantes:
+  develop                                   fedd230 [origin/develop] Merge pull request #9 from lucashenrique1908/feature/sprint-3-finalization   feature/sprint-3-finalization             7a4d09c [origin/feature/sprint-3-finalization] chore(sprint-3): save finalization progress * feature/sprint-4                          fedd230 [origin/feature/sprint-4] Merge pull request #9 from lucashenrique1908/feature/sprint-3-finalization   main                                      18bddb7 [origin/main] chore: initialize monorepo structure   new-features/authentication-authorization e33e321 [origin/new-features/authentication-authorization] feat(organizations): implement organization workspace management   new-features/environment-configuration    c08048f [origin/new-features/environment-configuration] feat: configure environment validation and document setup   new-features/git-workflow-setup           010f8ae [origin/new-features/git-workflow-setup] docs: establish Git workflow and pull request template   new-features/initialize-apps              3c157fc [origin/new-features/initialize-apps] feat: initialize Next.js frontend and NestJS backend   new-features/postgresql-typeorm-setup     1072573 [origin/new-features/postgresql-typeorm-setup] feat: configure PostgreSQL and TypeORM   new-features/quality-ci-setup             138cf2c [origin/new-features/quality-ci-setup: ahead 1] Merge pull request #5 from lucashenrique1908/new-features/quality-ci-setup
+
+============================================================
+5. COMPARACAO COM DEVELOP
+============================================================
+Diff estatistico:
+
+
+Ficheiros diferentes:
+
+
+============================================================
+6. DIFERENCAS LOCAIS AINDA NAO COMMITADAS
+============================================================
+Diff de ficheiros rastreados:
+
+
+Ficheiros staged:
+
+
+============================================================
+7. FICHEIROS NA PASTA DOCS
+============================================================
+
+FullName                                                                 Length LastWriteTime      
+--------                                                                 ------ -------------      
+C:\Users\conta\Desktop\SAAS\SAAS-Platform\docs\.gitkeep                       0 22/10/2026 05:09:45
+C:\Users\conta\Desktop\SAAS\SAAS-Platform\docs\AUTHENTICATION.md          11155 16/11/2026 04:35:41
+C:\Users\conta\Desktop\SAAS\SAAS-Platform\docs\DEVELOPER_MODULE.md         7276 17/11/2026 14:52:42
+C:\Users\conta\Desktop\SAAS\SAAS-Platform\docs\GIT_WORKFLOW.md             4872 27/10/2026 14:42:57
+C:\Users\conta\Desktop\SAAS\SAAS-Platform\docs\ORGANIZATION_WORKSPACE.md   8554 16/11/2026 04:35:44
+C:\Users\conta\Desktop\SAAS\SAAS-Platform\docs\QUALITY_AND_SECURITY.md     4756 12/11/2026 04:24:40
+C:\Users\conta\Desktop\SAAS\SAAS-Platform\docs\SPRINT_4_5_BARBER_PLAN.md  33270 17/11/2026 17:30:50
+
+
+
+
+============================================================
+FICHEIRO: .\docs\SPRINT_4_5_BARBER_PLAN.md
+============================================================
+# Plano das Sprints 4 e 5 â€” Barber Module
+
+## 1. Objetivo e estado da auditoria
+
+Este documento planeia a fundaÃ§Ã£o e a operaÃ§Ã£o do mÃ³dulo Barber em duas sprints. Ã‰ planeamento; nÃ£o descreve funcionalidades jÃ¡ implementadas.
+
+Auditoria realizada em 17-11-2026:
+
+- Branch: `feature/sprint-4`, acompanhando `origin/feature/sprint-4`.
+- Commit observado: `fedd230` (`Merge pull request #9 from lucashenrique1908/feature/sprint-3-finalization`).
+- Estado Git: sem alteraÃ§Ãµes rastreadas pendentes. Ficheiros nÃ£o rastreados observados: `SPRINT-4-AUDIT-REPORT.txt` e `artifacts/`; ambos foram preservados.
+- Barber jÃ¡ consta no catÃ¡logo de mÃ³dulos e permissÃµes e tem landing page genÃ©rica. A API ainda nÃ£o tem mÃ³dulo funcional, entidades, controllers, services, DTOs, guards Barber nem migrations Barber.
+- NÃ£o foram executados testes ou comandos de validaÃ§Ã£o nesta tarefa.
+
+## 2. Arquitetura existente e reutilizaÃ§Ã£o
+
+O repositÃ³rio Ã© um monorepo npm workspaces com `apps/api` (NestJS, TypeORM, PostgreSQL) e `apps/web` (Next.js App Router, React, Tailwind CSS 4). O backend usa migrations explÃ­citas, `synchronize: false`, DTOs/validaÃ§Ã£o e mÃ³dulos por domÃ­nio. A aplicaÃ§Ã£o web usa o shell do workspace e handlers BFF para encaminhar sessÃ£o; chamadas mutÃ¡veis jÃ¡ incluem proteÃ§Ã£o CSRF no padrÃ£o existente.
+
+Auth, Organizations, memberships, roles e mÃ³dulo habilitÃ¡vel por organizaÃ§Ã£o sÃ£o infraestrutura existente. `OrganizationAccessGuard` resolve slug/UUID, valida organizaÃ§Ã£o ativa e membership; permissÃµes declaradas sÃ£o aplicadas no backend. Owner/Admin tÃªm acesso amplo, enquanto Members dependem de permissÃµes explÃ­citas. O Developer acrescenta guard prÃ³prio para mÃ³dulo ativo e implementa domÃ­nio dentro de `apps/api/src/developers/`; as suas entidades, services e pÃ¡ginas dÃ£o exemplos de convenÃ§Ãµes, mas a propriedade individual do perfil Developer nÃ£o deve ser copiada como modelo dos dados partilhados de uma barbearia.
+
+Reutilizar o shell, navegaÃ§Ã£o, BFF, sessÃ£o, CSRF, componentes UI, organizaÃ§Ã£o de DTO/controller/service/entity, migrations explÃ­citas, Vitest e testes Supertest. NÃ£o generalizar CRUD ou refatorar mÃ³dulos antes de existir repetiÃ§Ã£o concreta. A soluÃ§Ã£o de ficheiros do Developer Ã© local; nÃ£o prova armazenamento durÃ¡vel de produÃ§Ã£o. Fotografias e uploads estÃ£o adiados.
+
+Infraestrutura de testes confirmada: Vitest na API e web; teste E2E da API em `apps/api/test/app.e2e-spec.ts`; PostgreSQL de teste no Compose, porta 5433, com volume temporÃ¡rio e DB `saas_auth_test`. O E2E atual cobre principalmente autenticaÃ§Ã£o/autorizaÃ§Ã£o. A suite de frontend existente Ã© pequena (`apps/web/src/lib/auth-api.spec.ts`); hÃ¡ margem para criar cobertura dos fluxos Barber.
+
+DocumentaÃ§Ã£o consultada: `docs/DEVELOPER_MODULE.md`, `docs/ORGANIZATION_WORKSPACE.md`, `docs/AUTHENTICATION.md` e `docs/QUALITY_AND_SECURITY.md`. A documentaÃ§Ã£o funcional do Developer nÃ£o serÃ¡ modificada por este plano.
+
+## 3. DecisÃµes aprovadas incorporadas
+
+- OrganizaÃ§Ã£o pode registar profissionais com conta e sem conta. O perfil profissional tem `userId` opcional; quando presente, a associaÃ§Ã£o deve corresponder a membership da mesma organizaÃ§Ã£o.
+- Existem perfil da barbearia e perfis profissionais individuais. Ambos sÃ£o internos nas Sprints 4 e 5; descoberta e perfis pÃºblicos ficam adiados.
+- Owner/Admin tÃªm acesso organizacional amplo. Member pode ler dados operacionais da organizaÃ§Ã£o com `barber:read`; `barber:write` apenas permite escritas nos registos sob responsabilidade atribuÃ­da ao Member. As autorizaÃ§Ãµes serÃ£o aplicadas na API.
+- Cliente: nome e telefone obrigatÃ³rios; email opcional. Duplicados sÃ£o permitidos; nÃ£o se bloqueia por telefone, email ou nome. Nenhum outro dado pessoal Ã© requisito inicial.
+- Timezone configurado na organizaÃ§Ã£o, com `Europe/Lisbon` como valor inicial recomendado, configurÃ¡vel para outros paÃ­ses. Instantes persistidos sem ambiguidade; apresentaÃ§Ã£o no timezone organizacional, incluindo DST.
+- Estados de agendamento aprovados: `PENDING`, `CONFIRMED`, `COMPLETED`, `CANCELLED`. Cancelamento preserva histÃ³rico.
+- ServiÃ§o tem preÃ§o em EUR e duraÃ§Ã£o. Agendamento guarda snapshot do preÃ§o e duraÃ§Ã£o vigentes na criaÃ§Ã£o.
+- ServiÃ§o sÃ³ pode ser realizado pelos profissionais associados explicitamente.
+- Uma localizaÃ§Ã£o por organizaÃ§Ã£o nesta fase. NÃ£o criar entidades de localizaÃ§Ãµes, cadeiras ou recursos nesta entrega.
+- Sem fotos/uploads Barber nas Sprints 4 e 5.
+
+## 4. Arquitetura proposta
+
+### API
+
+```text
+apps/api/src/barber/
+  barber.module.ts
+  barber.controller.ts
+  barber.service.ts
+  barber-scheduling.service.ts       # Sprint 5
+  guards/barber-module-access.guard.ts
+  dto/
+  entities/
+```
+
+Controladores sob `/organizations/:slug/barber`. Usar `OrganizationAccessGuard`, guard Barber que confirma mÃ³dulo habilitado e `@RequireModulePermissions` conforme operaÃ§Ã£o. Services recebem `organizationId` validado e incluem-no nas consultas; IDs de entidades relacionadas devem ser procurados dentro da mesma organizaÃ§Ã£o. Quando o recurso for de propriedade individual, verificar ainda `professionalId`/responsÃ¡vel atribuÃ­do.
+
+### Web
+
+```text
+apps/web/src/app/workspace/[slug]/barber/
+  page.tsx
+  profile/page.tsx
+  professionals/page.tsx
+  services/page.tsx
+  clients/page.tsx
+  schedule/page.tsx                 # Sprint 5
+  appointments/page.tsx              # Sprint 5
+apps/web/src/components/barber/
+  business-profile-editor.tsx
+  professional-editor.tsx
+  service-editor.tsx
+  client-editor.tsx
+  weekly-schedule-editor.tsx        # Sprint 5
+  appointment-editor.tsx            # Sprint 5
+```
+
+Manter chamadas pelo BFF/sessÃ£o/CSRF e componentes de UI existentes. Adaptar navegaÃ§Ã£o ao padrÃ£o de pÃ¡ginas Developer. Sem abstraÃ§Ãµes CRUD genÃ©ricas preventivas.
+
+### Modelo lÃ³gico indicativo
+
+| Entidade | RelaÃ§Ãµes e notas |
+|---|---|
+| `BarberBusinessProfile` | Um por organizaÃ§Ã£o; perfil interno da barbearia. NÃ£o duplicar campos de organizaÃ§Ã£o sem esclarecer que informaÃ§Ã£o de negÃ³cio adicional Ã© necessÃ¡ria. |
+| `BarberProfessional` | Pertence a organizaÃ§Ã£o; `userId` opcional; pode ter perfil profissional interno. Conta associada requer membership da organizaÃ§Ã£o. |
+| `BarberService` | Pertence a organizaÃ§Ã£o; nome, descriÃ§Ã£o, duraÃ§Ã£o, preÃ§o EUR, estado ativo. Desativar em vez de apagar se referenciado historicamente. |
+| `BarberProfessionalService` | RelaÃ§Ã£o muitos-para-muitos explÃ­cita entre profissional e serviÃ§o, com unicidade e ambos da mesma organizaÃ§Ã£o. |
+| `BarberClient` | Pertence Ã  organizaÃ§Ã£o; nome, telefone, email opcional; duplicados permitidos. |
+| `BarberWorkingHours` | Sprint 5: perÃ­odos semanais por profissional e dia da semana, conforme regra de pausas a fechar. |
+| `BarberAvailabilityException` | Sprint 5: indisponibilidade/folga com inÃ­cio e fim. |
+| `BarberAppointment` | Sprint 5: organizaÃ§Ã£o, profissional, cliente, serviÃ§o, inÃ­cio/fim, estado e snapshots de preÃ§o/duraÃ§Ã£o. Preservar relaÃ§Ãµes histÃ³ricas sem cascatas destrutivas. |
+
+Todas as tabelas operacionais possuem `organizationId`, FKs, Ã­ndices de consulta por tenant e constraints de integridade. Recomenda-se UUIDs como restante domÃ­nio. Definir polÃ­tica de deleÃ§Ã£o/retensÃ£o explicitamente em cada migration. Antes da Sprint 5, escolher mecanismo PostgreSQL para impedir sobreposiÃ§Ã£o concorrente no nÃ­vel transacional/DB; consulta prÃ©via isolada nÃ£o basta.
+
+### API indicativa
+
+Sprint 4:
+
+- `GET/PUT profile`
+- `GET/POST professionals`, `GET/PUT/DELETE professionals/:id` (preferir desativaÃ§Ã£o quando referenciado)
+- `GET/POST services`, `GET/PUT/DELETE services/:id`
+- `PUT services/:id/professionals` ou rotas equivalentes para associaÃ§Ã£o explÃ­cita
+- `GET/POST clients`, `GET/PUT/DELETE clients/:id` (retenÃ§Ã£o a definir; evitar apagamento fÃ­sico com histÃ³rico)
+
+Sprint 5:
+
+- `GET/PUT professionals/:id/schedule`
+- `GET/POST/DELETE professionals/:id/availability-exceptions`
+- `GET availability?professionalId=&serviceId=&from=&to=`
+- `GET/POST appointments`, `GET/PUT appointments/:id`, aÃ§Ã£o de transiÃ§Ã£o/cancelamento
+- `GET dashboard/summary`
+
+Os nomes finais de endpoints e mÃ©todos de transiÃ§Ã£o devem ser fechados ao desenhar DTOs; toda rota requer tenant, permissÃ£o e propriedade aplicÃ¡vel.
+
+## 5. Sprint 4 â€” Barber Foundation & Management
+
+**Objetivo:** entregar fundaÃ§Ã£o, perfil da barbearia, profissionais, catÃ¡logo/associaÃ§Ãµes e clientes. NÃ£o inclui horÃ¡rios, indisponibilidades, agendamentos, calendÃ¡rio, dashboard operacional ou descoberta pÃºblica.
+
+### BARBER-01 â€” Acesso e estrutura do mÃ³dulo
+
+- **Objetivo/descriÃ§Ã£o:** registar mÃ³dulo NestJS e pÃ¡ginas iniciais, garantindo acesso por membership, mÃ³dulo ativo e permissÃµes jÃ¡ existentes.
+- **TÃ©cnico:** novo guard Barber seguindo o Developer; todas as rotas protegidas. Sem alteraÃ§Ã£o das permissÃµes globais existentes salvo necessidade demonstrada.
+- **Subtasks:** (1) registar Barber no mÃ³dulo raiz e TypeORM; (2) criar guard de mÃ³dulo ativo; (3) criar controller e rota base com acesso organizacional; (4) adicionar pÃ¡ginas e navegaÃ§Ã£o; (5) testar mÃ³dulo desligado e matriz base de autorizaÃ§Ã£o.
+- **AceitaÃ§Ã£o:** utilizador sem membership nÃ£o acede; mÃ³dulo desligado bloqueia API e UI; Owner/Admin podem usar o mÃ³dulo; Member precisa de leitura/escrita respetiva; escrita limitada pela polÃ­tica de propriedade nas Tasks de domÃ­nio.
+- **DependÃªncias:** nenhuma. **Prioridade:** P0. **Estimativa:** 3 pontos. **Ãreas:** Backend, Frontend, Testing, Documentation.
+
+### BARBER-02 â€” Modelo de dados e migrations
+
+- **Objetivo/descriÃ§Ã£o:** persistir perfil de organizaÃ§Ã£o, profissionais, serviÃ§os, associaÃ§Ãµes e clientes com isolamento tenant.
+- **TÃ©cnico:** entities/constraints TypeORM, migration explÃ­cita e reversÃ­vel; `organizationId` em cada registo operativo; user opcional no profissional.
+- **Subtasks:** (1) detalhar relaÃ§Ãµes e comportamento de deleÃ§Ã£o; (2) criar entidades e Ã­ndices; (3) migration `up/down`; (4) registar entidades; (5) testes de migration e constraints; (6) definir timezone no perfil/organizaÃ§Ã£o sem migraÃ§Ã£o nesta tarefa funcional se decisÃ£o tÃ©cnica indicar coluna separada necessÃ¡ria para Sprint 5.
+- **AceitaÃ§Ã£o:** entidades instanciam e constraints garantem referÃªncias vÃ¡lidas; uma associaÃ§Ã£o cross-tenant falha; migration reverte; nenhum dado Ã© removido por cascade de forma nÃ£o aprovada.
+- **DependÃªncias:** BARBER-01. **Prioridade:** P0. **Estimativa:** 5 pontos. **Ãreas:** Backend, Database, Testing, Documentation.
+
+### BARBER-03 â€” Perfil da barbearia e profissionais
+
+- **Objetivo/descriÃ§Ã£o:** gerir os dados internos da barbearia e vÃ¡rios profissionais, com ou sem conta.
+- **TÃ©cnico:** profile por organizaÃ§Ã£o; `userId` opcional no profissional; associaÃ§Ã£o com conta verifica membership. Fotografias e publicaÃ§Ã£o pÃºblica fora do escopo.
+- **Subtasks:** (1) fechar campos do perfil e regras de propriedade; (2) DTOs e validaÃ§Ã£o; (3) service/endpoints tenant-aware; (4) interface de perfil e profissionais; (5) associar/desassociar membro sem aceitar utilizador de outro tenant; (6) testes de acesso de cada papel e casos com/sem conta.
+- **AceitaÃ§Ã£o:** organizaÃ§Ã£o mantÃ©m no mÃ¡ximo o perfil acordado; pode criar profissional interno sem conta; conta associada pertence Ã  organizaÃ§Ã£o; Member sÃ³ edita perfil prÃ³prio/atribuiÃ§Ãµes permitidas, nunca perfil de outro; Owner/Admin gerem todos.
+- **DependÃªncias:** BARBER-02 e decisÃ£o de campos/proprietÃ¡rio. **Prioridade:** P0. **Estimativa:** 5 pontos. **Ãreas:** Frontend, Backend, Database, Testing.
+
+### BARBER-04 â€” ServiÃ§os e associaÃ§Ã£o a profissionais
+
+- **Objetivo/descriÃ§Ã£o:** criar e manter serviÃ§os com preÃ§o EUR, duraÃ§Ã£o e associaÃ§Ã£o explÃ­cita a profissionais.
+- **TÃ©cnico:** CRUD, estado ativo, relaÃ§Ãµes tenant-safe; polÃ­tica de desativaÃ§Ã£o para referÃªncias histÃ³ricas.
+- **Subtasks:** (1) DTOs com limites e formato monetÃ¡rio definido; (2) services/endpoints; (3) operaÃ§Ãµes de associaÃ§Ã£o explÃ­cita; (4) lista/editor UI; (5) regras de propriedade/responsÃ¡vel Member; (6) testes de preÃ§os/duraÃ§Ã£o, serviÃ§o inativo e ligaÃ§Ãµes cross-tenant.
+- **AceitaÃ§Ã£o:** nÃ£o se associa profissional externo; profissional sÃ³ atende serviÃ§o associado; Owner/Admin gerem catÃ¡logo; Member sÃ³ altera serviÃ§o se explicitamente responsÃ¡vel/atribuÃ­do; nÃ£o apagar fisicamente registo histÃ³rico.
+- **DependÃªncias:** BARBER-02 e BARBER-03. **Prioridade:** P0. **Estimativa:** 5 pontos. **Ãreas:** Frontend, Backend, Database, Testing.
+
+### BARBER-05 â€” GestÃ£o de clientes
+
+- **Objetivo/descriÃ§Ã£o:** guardar e pesquisar dados mÃ­nimos dos clientes da organizaÃ§Ã£o.
+- **TÃ©cnico:** nome e telefone obrigatÃ³rios, email opcional, duplicados aceites; acesso limitado por tenant e responsÃ¡vel.
+- **Subtasks:** (1) DTO/validaÃ§Ã£o; (2) CRUD e pesquisa; (3) formulÃ¡rio/lista; (4) polÃ­tica de responsabilidade de criaÃ§Ã£o/ediÃ§Ã£o; (5) testes de duplicado permitido, validaÃ§Ã£o e isolamento.
+- **AceitaÃ§Ã£o:** cliente pode ser criado com nome/telefone sem email; duplicado nÃ£o Ã© rejeitado; Member sÃ³ altera clientes atribuÃ­dos segundo regra aprovada; outra organizaÃ§Ã£o nunca pode ler/alterar o registo por ID.
+- **DependÃªncias:** BARBER-02; decisÃ£o de atribuiÃ§Ã£o/retensÃ£o. **Prioridade:** P0. **Estimativa:** 3 pontos. **Ãreas:** Frontend, Backend, Database, Testing.
+
+### BARBER-06 â€” Testes, seguranÃ§a e documentaÃ§Ã£o da Sprint 4
+
+- **Objetivo/descriÃ§Ã£o:** fechar qualidade, atualizar documento funcional futuro separado e comprovar prÃ©-requisito do ambiente E2E sem apontar a DB errada.
+- **TÃ©cnico:** adicionar unit/integration/frontend; documentar configuraÃ§Ã£o E2E e executar validaÃ§Ã£o apenas na sprint autorizada.
+- **Subtasks:** (1) testes de serviÃ§os/DTOs/guard; (2) testes tenant de entidades Barber; (3) testes frontend dos fluxos centrais; (4) validar configuraÃ§Ã£o `NODE_ENV=test`, host loopback e `POSTGRES_DB` com sufixo `_test`; (5) corrigir configuraÃ§Ã£o fora deste plano, se falhar na Sprint 4; (6) E2E do fluxo de acesso e CRUD principal com PostgreSQL de teste; (7) criar/atualizar docs de implementaÃ§Ã£o Barber.
+- **AceitaÃ§Ã£o:** E2E sÃ³ Ã© declarado funcional apÃ³s execuÃ§Ã£o comprovada na DB dedicada; host nÃ£o loopback e DB sem `_test` sÃ£o rejeitados; testes crÃ­ticos e CI passam; docs refletem estado real.
+- **DependÃªncias:** BARBER-01 a 05. **Prioridade:** P0. **Estimativa:** 5 pontos. **Ãreas:** Backend, Frontend, Database, Testing, Infrastructure, Documentation.
+
+**Estimativa total inicial Sprint 4: 26 pontos**; validar com capacidade real da equipa e apÃ³s decisÃµes. BARBER-03/04/06 podem exigir divisÃ£o caso a capacidade da sprint seja limitada, mantendo o escopo de negÃ³cio aprovado.
+
+## 6. Sprint 5 â€” Barber Scheduling & Operations
+
+**Objetivo:** acrescentar agenda operacional sobre os modelos da Sprint 4; nÃ£o recriar entidades de profissionais, serviÃ§os e clientes.
+
+### BARBER-07 â€” HorÃ¡rios e disponibilidade
+
+- **Objetivo/descriÃ§Ã£o:** definir perÃ­odos semanais de trabalho e consultar disponibilidade por profissional/serviÃ§o.
+- **TÃ©cnico:** representar intervalos locais no timezone organizacional; suportar pausas atravÃ©s de vÃ¡rios intervalos por dia ou decisÃ£o equivalente.
+- **Subtasks:** (1) fechar limites, pausas e timezone; (2) modelo/DTO de horÃ¡rios; (3) endpoints de leitura/escrita; (4) editor semanal; (5) cÃ¡lculo de disponibilidade por profissional e serviÃ§o; (6) testes de limites e DST.
+- **AceitaÃ§Ã£o:** intervalos invÃ¡lidos nÃ£o sÃ£o gravados; serviÃ§o sÃ³ aparece se ativo e associado ao profissional; disponibilidade usa timezone da organizaÃ§Ã£o e datas inequÃ­vocas.
+- **DependÃªncias:** Sprint 4 e BARBER-03/04. **Prioridade:** P0. **Estimativa:** 5 pontos. **Ãreas:** Frontend, Backend, Database, Testing.
+
+### BARBER-08 â€” Indisponibilidades e exceÃ§Ãµes
+
+- **Objetivo/descriÃ§Ã£o:** registar folgas e indisponibilidades com intervalo temporal.
+- **TÃ©cnico:** exceÃ§Ãµes pertencem Ã  organizaÃ§Ã£o e profissional; nÃ£o apagar agendamentos existentes quando o horÃ¡rio muda.
+- **Subtasks:** (1) modelo e validaÃ§Ã£o intervalar; (2) CRUD de exceÃ§Ãµes; (3) interface para datas/horas locais; (4) integrar exceÃ§Ãµes no cÃ¡lculo de disponibilidade; (5) testes de interseÃ§Ã£o, DST e tenant.
+- **AceitaÃ§Ã£o:** exceÃ§Ã£o bloqueia novas reservas no intervalo; nÃ£o altera histÃ³rico; apenas responsÃ¡veis autorizados podem editar.
+- **DependÃªncias:** BARBER-07. **Prioridade:** P0. **Estimativa:** 3 pontos. **Ãreas:** Frontend, Backend, Database, Testing.
+
+### BARBER-09 â€” Agendamentos
+
+- **Objetivo/descriÃ§Ã£o:** gerir agendamento interno com profissional, cliente, serviÃ§o e estado aprovado.
+- **TÃ©cnico:** guardar instante inequÃ­voco, timezone organizacional para apresentaÃ§Ã£o, snapshot de preÃ§o/duraÃ§Ã£o, transiÃ§Ãµes controladas e relaÃ§Ãµes do mesmo tenant.
+- **Subtasks:** (1) fechar estados/transiÃ§Ãµes e polÃ­ticas; (2) entidade e migration; (3) DTOs/API de criar/listar/editar/cancelar; (4) validar profissional-serviÃ§o-cliente e estado ativo; (5) UI de agenda/lista; (6) snapshots de preÃ§o/duraÃ§Ã£o; (7) testes de transiÃ§Ã£o e histÃ³rico.
+- **AceitaÃ§Ã£o:** aceita apenas `PENDING`, `CONFIRMED`, `COMPLETED`, `CANCELLED` conforme transiÃ§Ãµes aprovadas; guarda EUR e duraÃ§Ã£o no momento; cancelar preserva registo; relaÃ§Ãµes cross-tenant sÃ£o rejeitadas.
+- **DependÃªncias:** BARBER-04 a 08. **Prioridade:** P0. **Estimativa:** 8 pontos. **Ãreas:** Frontend, Backend, Database, Testing.
+
+### BARBER-10 â€” PrevenÃ§Ã£o de conflitos e concorrÃªncia
+
+- **Objetivo/descriÃ§Ã£o:** impedir sobreposiÃ§Ã£o na agenda por regra de negÃ³cio e proteÃ§Ã£o transacional/DB.
+- **TÃ©cnico:** testar interseÃ§Ãµes parciais, contidas e simultÃ¢neas; especificar a regra de conflito considerando estados cancelados e buffers aprovados.
+- **Subtasks:** (1) decidir semÃ¢ntica de intervalos e conflito; (2) implementar estratÃ©gia de concorrÃªncia PostgreSQL; (3) transaÃ§Ã£o para criar/editar; (4) mapear violaÃ§Ãµes para resposta compreensÃ­vel; (5) testes reais de concorrÃªncia no Postgres isolado.
+- **AceitaÃ§Ã£o:** apenas uma requisiÃ§Ã£o concorrente incompatÃ­vel Ã© aceite; cancelados deixam de ocupar disponibilidade conforme regra; editar tambÃ©m verifica conflitos; nÃ£o depende de consulta prÃ©via na UI.
+- **DependÃªncias:** BARBER-07 a 09. **Prioridade:** P0. **Estimativa:** 8 pontos. **Ãreas:** Backend, Database, Testing.
+
+### BARBER-11 â€” Dashboard operacional
+
+- **Objetivo/descriÃ§Ã£o:** mostrar prÃ³ximos atendimentos e indicadores bÃ¡sicos derivados de dados existentes.
+- **TÃ©cnico:** endpoint agregado, filtros tenant e timezone; sem mÃ©tricas financeiras nÃ£o aprovadas.
+- **Subtasks:** (1) fechar indicadores e perÃ­odo; (2) endpoint summary; (3) componente de resumo/prÃ³ximos; (4) estados vazio/erro/loading; (5) testes tenant e fronteiras de data.
+- **AceitaÃ§Ã£o:** dados reais e isolados; interpretaÃ§Ã£o de â€œhojeâ€ usa timezone organizacional; sem dados mostra vazio real.
+- **DependÃªncias:** BARBER-09. **Prioridade:** P1. **Estimativa:** 3 pontos. **Ãreas:** Frontend, Backend, Testing.
+
+### BARBER-12 â€” E2E, seguranÃ§a e documentaÃ§Ã£o da Sprint 5
+
+- **Objetivo/descriÃ§Ã£o:** verificar o fluxo operacional ponta a ponta e documentar comportamento.
+- **TÃ©cnico:** PostgreSQL isolado; executar E2E sem credenciais externas nem dados de produÃ§Ã£o.
+- **Subtasks:** (1) E2E de horÃ¡rio, indisponibilidade, reserva e cancelamento; (2) E2E de conflito concorrente e tenant; (3) rever autorizaÃ§Ã£o/retensÃ£o; (4) verificar suite API/web, lint, types, build; (5) atualizar documentaÃ§Ã£o Barber e limitaÃ§Ãµes.
+- **AceitaÃ§Ã£o:** fluxo completo passa em ambiente comprovado; suite nÃ£o usa banco persistente; estado de integraÃ§Ã£o e limitaÃ§Ãµes estÃ¡ documentado.
+- **DependÃªncias:** BARBER-07 a 11. **Prioridade:** P0. **Estimativa:** 5 pontos. **Ãreas:** Frontend, Backend, Database, Testing, Infrastructure, Documentation.
+
+**Estimativa total inicial Sprint 5: 32 pontos**. Reavaliar especialmente BARBER-09/10 apÃ³s fechar regras temporais e estratÃ©gia DB.
+
+## 7. Matriz de permissÃµes proposta
+
+Todos os acessos ainda exigem membership, organizaÃ§Ã£o ativa e mÃ³dulo Barber habilitado. A matriz operacional aplica-se no backend, independentemente da UI.
+
+| Entidade | Owner/Admin | Member com `barber:read` | Member com `barber:write` |
+|---|---|---|---|
+| Perfil da barbearia | Ler/criar/editar | Ler | Sem escrita por padrÃ£o; atribuiÃ§Ã£o explÃ­cita de gestÃ£o Ã© decisÃ£o pendente. |
+| Perfil profissional | Ler/gerir todos | Ler todos | Editar apenas perfil prÃ³prio, identificado por profissional associado a `userId`; sem conta requer responsÃ¡vel atribuÃ­do. |
+| ServiÃ§os | Criar/editar/desativar todos | Ler todos | Editar apenas serviÃ§os com `responsibleProfessionalId` atribuÃ­do ao profissional do Member; definir se Member pode criar serviÃ§o prÃ³prio. |
+| Clientes | Gerir todos | Ler todos | Criar e editar apenas clientes atribuÃ­dos a si; Owner/Admin podem reatribuir. |
+| HorÃ¡rios | Gerir horÃ¡rios de todos | Ler todos | Editar apenas horÃ¡rio do prÃ³prio profissional. |
+| Agendamentos | Gerir todos | Ler todos | Criar/editar/cancelar apenas os prÃ³prios agendamentos ou aqueles pelos quais Ã© responsÃ¡vel. |
+
+Com `barber:read` apenas, todas as operaÃ§Ãµes de escrita sÃ£o recusadas. `barber:write` nÃ£o substitui leitura; atribuiÃ§Ãµes/propriedade precisam de validaÃ§Ã£o explÃ­cita. Recomenda-se separar `createdByUserId` de `responsibleProfessionalId` nas entidades em que auditoria e propriedade nÃ£o significam a mesma coisa.
+
+## 8. Testes, qualidade e ambiente E2E
+
+### Cobertura por sprint
+
+- **Sprint 4 unit:** validaÃ§Ãµes dos DTOs, serviÃ§os, guard Barber, regra de perfil/member, associaÃ§Ãµes e normalizaÃ§Ã£o; migration reversÃ­vel.
+- **Sprint 4 integraÃ§Ã£o:** CRUD com DB de teste, chaves estrangeiras, isolamento entre organizaÃ§Ãµes, profissionais com/sem conta, duplicados de cliente permitidos, serviÃ§o-profissional explÃ­cito.
+- **Sprint 4 frontend:** acesso/pÃ¡gina, formulÃ¡rio vÃ¡lido/invÃ¡lido, erro de API, estados de carregamento/vazio, submissÃ£o via BFF e controlo de aÃ§Ãµes por papel.
+- **Sprint 4 E2E:** sessÃ£o/CSRF, mÃ³dulo ativo, permissÃµes, perfil, profissional, serviÃ§o, associaÃ§Ã£o e cliente. Executar apenas apÃ³s prÃ©-requisito de ambiente ficar validado.
+- **Sprint 5 unit/integration:** transiÃ§Ãµes, timezone/DST, intervalos, exceÃ§Ãµes, snapshots, queries tenant-aware e conflitos, incluindo concorrÃªncia em PostgreSQL real.
+- **Sprint 5 E2E:** cadeia completa atÃ© agendar e cancelar; tentativas cross-tenant; conflitos parciais/contidos; duas criaÃ§Ãµes simultÃ¢neas; mudanÃ§a de serviÃ§o sem mutaÃ§Ã£o do histÃ³rico.
+
+### VerificaÃ§Ã£o E2E requerida antes da primeira execuÃ§Ã£o
+
+O cÃ³digo atual exige, em `NODE_ENV=test`, host loopback e `POSTGRES_DB` terminado em `_test`. O Compose documenta DB `saas_auth_test` e a documentaÃ§Ã£o existente configura esse valor. O prompt informa que uma validaÃ§Ã£o anterior falhou devido a `POSTGRES_DB` sem sufixo `_test`; a inspeÃ§Ã£o confirma que esse valor Ã© rejeitado pelo validador. NÃ£o foi possÃ­vel comprovar a execuÃ§Ã£o funcional nem determinar, a partir do estado do cÃ³digo/documentaÃ§Ã£o, qual variÃ¡vel concreta foi herdada no terminal que falhou. Assim, a Sprint 4 deve reproduzir a falha de forma segura, explicitar todas as variÃ¡veis no mesmo processo, verificar `NODE_ENV=test`, `POSTGRES_HOST=127.0.0.1`, `POSTGRES_PORT=5433` e `POSTGRES_DB=saas_auth_test`, e sÃ³ entÃ£o executar. Se o comando documentado continuar a falhar, registar o erro real antes de corrigir a configuraÃ§Ã£o; nesta tarefa nÃ£o houve alteraÃ§Ã£o nem validaÃ§Ã£o.
+
+Comandos disponÃ­veis no repositÃ³rio â€” **nÃ£o executados nesta tarefa**:
+
+```powershell
+# Base de teste isolada
+docker compose --profile test up -d postgres-test
+
+# No terminal da API, definir os valores explicitamente no processo de teste:
+$env:NODE_ENV = 'test'
+$env:POSTGRES_HOST = '127.0.0.1'
+$env:POSTGRES_PORT = '5433'
+$env:POSTGRES_USER = 'saas_test'
+$env:POSTGRES_PASSWORD = 'saas_test_password'
+$env:POSTGRES_DB = 'saas_auth_test'
+$env:FRONTEND_BASE_URL = 'http://localhost:3000'
+$env:CORS_ORIGINS = 'http://localhost:3000'
+$env:EMAIL_FROM = 'SaaS Platform <auth@example.test>'
+
+npm.cmd run migration:run --workspace=apps/api
+npm.cmd run test:e2e --workspace=apps/api
+
+# Qualidade disponÃ­vel na raiz
+npm.cmd test
+npm.cmd run typecheck
+npm.cmd run lint
+npm.cmd run format:check
+npm.cmd run build
+npm.cmd run audit
+```
+
+Antes de E2E, conferir que as variÃ¡veis no terminal apontam para a DB temporÃ¡ria, nunca `saas_db`/porta 5432. Migration de E2E Ã© feita pelo prÃ³prio teste via `runMigrations`; o comando separado de migration sÃ³ Ã© necessÃ¡rio se a estratÃ©gia de validaÃ§Ã£o o requerer e deve usar a mesma conexÃ£o isolada.
+
+## 9. Plano de estudos associado Ã s Tasks
+
+NÃ£o Ã© preciso estudar a stack inteira antes de comeÃ§ar. Ler cÃ³digo equivalente no repositÃ³rio e estudar o assunto imediatamente antes da Task. Recursos em portuguÃªs recentes devem ser selecionados pelo tema e confirmados quanto Ã  data/versÃ£o; as pesquisas pÃºblicas nesta auditoria nÃ£o permitiram confirmar um conjunto de vÃ­deos 2025/2026 que cobrisse fielmente estes fluxos. Evitar recomendar tutoriais desatualizados como referÃªncia de API. Complementar com documentaÃ§Ã£o oficial e exemplos existentes no monorepo.
+
+### Sprint 4
+
+| Antes de | Estudar | AplicaÃ§Ã£o |
+|---|---|---|
+| BARBER-01 | TypeScript bÃ¡sico/intermÃ©dio: tipos de uniÃ£o, tipos de retorno, narrowing; NestJS Module/Controller/Guard; Next App Router e rota dinÃ¢mica | Ler guard Developer, decorators de autorizaÃ§Ã£o, mÃ³dulos e landing page; adaptar a integraÃ§Ã£o Barber. |
+| BARBER-02 | PostgreSQL: PK/FK, unique/check/index, `NULL`; TypeORM Entity/Relation e migrations `up/down` | Modelar tenant, profissional opcional, relaÃ§Ãµes e integridade; focar nos padrÃµes jÃ¡ usados nas migrations. |
+| BARBER-03 | React props/state/form events; formulÃ¡rios acessÃ­veis; validaÃ§Ã£o com DTOs; API REST e estados HTTP | Editores do perfil/profissionais e erros de validaÃ§Ã£o; entender o contrato API antes da UI. |
+| BARBER-04 | RelaÃ§Ãµes muitos-para-muitos, transaÃ§Ãµes bÃ¡sicas e validaÃ§Ã£o de domÃ­nio; valores monetÃ¡rios como decimal/inteiro de cÃªntimos | CatÃ¡logo e associaÃ§Ã£o explÃ­cita; prevenir float monetÃ¡rio e ligaÃ§Ãµes entre tenants. |
+| BARBER-05 | formulÃ¡rios e pesquisa simples; minimizaÃ§Ã£o de PII e autorizaÃ§Ã£o de recurso | Nome/telefone/email opcional, duplicados aceites e filtros por organizaÃ§Ã£o. |
+| BARBER-06 | Vitest, mocks vs integraÃ§Ã£o, Supertest, testes de componentes e env vars no PowerShell | Completar qualidade; testar DB sÃ³ na instÃ¢ncia isolada. |
+
+### Sprint 5
+
+| Antes de | Estudar | AplicaÃ§Ã£o |
+|---|---|---|
+| BARBER-07 | datas locais vs UTC, IANA timezone, PostgreSQL `timestamptz`, DST; React para inputs de data/hora | HorÃ¡rios recorrentes e interpretaÃ§Ã£o no fuso organizacional. |
+| BARBER-08 | intervalos temporais, limites inclusivos/exclusivos, validaÃ§Ã£o de datas | ExceÃ§Ãµes e como intersetam horÃ¡rios/agendamentos. |
+| BARBER-09 | Nest services/transaÃ§Ãµes, DTOs e mÃ¡quinas de estado simples; React formulÃ¡rios/listas | Criar/editar/cancelar e validar transiÃ§Ãµes sem perder snapshots. |
+| BARBER-10 | isolamento/transaÃ§Ãµes PostgreSQL, locks/constraints para intervalos, condiÃ§Ãµes de corrida | Escolher estratÃ©gia DB e demonstrar duas requisiÃ§Ãµes concorrentes com uma sÃ³ reserva vÃ¡lida. NÃ£o estudar otimizaÃ§Ã£o avanÃ§ada atÃ© ser necessÃ¡ria. |
+| BARBER-11/12 | componentes React de resumo, testes E2E com Supertest e leitura de logs de CI | Dashboard real e fluxo integral de testes. |
+
+Para vÃ­deos em portuguÃªs recentes, pesquisar no YouTube pelo tema exato (por exemplo â€œReact 19 TypeScript 2025â€, â€œNext.js App Router 2025â€, â€œNestJS TypeORM PostgreSQL 2025â€, â€œPostgreSQL transaÃ§Ãµes 2025â€) e confirmar data, versÃ£o e conteÃºdo antes de seguir. Para conceitos sujeitos a mudanÃ§a, a documentaÃ§Ã£o oficial atual deve prevalecer sobre vÃ­deo. A prioridade Ã© portuguÃªs, mas nÃ£o hÃ¡ recomendaÃ§Ã£o de vÃ­deo especÃ­fico nesta versÃ£o porque os resultados verificados nÃ£o confirmaram qualidade/atualidade suficiente para este projeto.
+
+## 10. DecisÃµes pendentes, recomendaÃ§Ãµes e bloqueios
+
+| DecisÃ£o/detalhe | RecomendaÃ§Ã£o | Bloqueia | Tasks |
+|---|---|---|---|
+| ProprietÃ¡rio/responsÃ¡vel de serviÃ§os e clientes | Guardar criador e responsÃ¡vel profissional separadamente; permitir atribuiÃ§Ã£o Owner/Admin; definir se Member cria serviÃ§o prÃ³prio | Sim, antes das regras de escrita | BARBER-03/04/05; BARBER-09 |
+| Member gerir os prÃ³prios registos | Relacionar user â†’ membership â†’ profissional. Profissional sem conta deve ter responsÃ¡vel explÃ­cito; sem responsÃ¡vel, sÃ³ Owner/Admin edita | Sim, antes da autorizaÃ§Ã£o de escrita | BARBER-03 a 05, BARBER-07 a 09 |
+| Campos do perfil de barbearia/profissional | ComeÃ§ar com nome de exibiÃ§Ã£o, descriÃ§Ã£o curta/localizaÃ§Ã£o e contactos necessÃ¡rios; nÃ£o duplicar campos de Organization sem motivo | NÃ£o bloqueia modelo mÃ­nimo; fechar durante refinamento | BARBER-03 |
+| RetenÃ§Ã£o/exclusÃ£o de clientes | Soft-delete/arquivamento quando tiver histÃ³rico; definir prazo e direito de eliminaÃ§Ã£o com responsÃ¡vel do produto antes de produÃ§Ã£o | PolÃ­tica final nÃ£o bloqueia CRUD inicial; bloqueia eliminaÃ§Ã£o definitiva | BARBER-05, BARBER-09 |
+| Horas, pausas e fronteiras | Representar cada dia como zero ou mais intervalos; usar intervalos semiabertos `[inÃ­cio,fim)`; decidir limites de antecedÃªncia | NÃ£o bloqueia S4; bloqueia disponibilidade | BARBER-07/08 |
+| TransiÃ§Ãµes de estado | RecomendaÃ§Ã£o: `PENDINGâ†’CONFIRMED/CANCELLED`; `CONFIRMEDâ†’COMPLETED/CANCELLED`; `COMPLETED` e `CANCELLED` terminais. Reabrir sÃ³ por correÃ§Ã£o administrativa auditada, se necessÃ¡rio | NÃ£o bloqueia S4; bloqueia booking | BARBER-09 |
+| Cancelamento/reagendamento e passado | Sem reserva pÃºblica nesta fase; definir se operador pode cancelar a qualquer momento, motivo obrigatÃ³rio e se permite agendar no passado para registo retroativo | NÃ£o bloqueia S4; bloqueia critÃ©rios de booking | BARBER-09 |
+| Buffer entre serviÃ§os | ComeÃ§ar sem buffer, mas manter intervalos calculados extensÃ­veis; sÃ³ adicionar campo/regra quando aprovado | NÃ£o bloqueia S4; fecha antes da concorrÃªncia S5 | BARBER-07/10 |
+| EstratÃ©gia DB de conflito | Avaliar exclusion constraint PostgreSQL para intervalos de um profissional vs lock/transaÃ§Ã£o; escolher depois de definir intervalos e suporte/extensÃ£o operacional. Teste concorrente obrigatÃ³rio | NÃ£o bloqueia S4; bloqueia S5 scheduling | BARBER-10 |
+| ConfiguraÃ§Ã£o E2E anterior | Repetir validaÃ§Ã£o com env vars explÃ­citas e DB isolada; causa reportada Ã© valor de DB sem `_test`, mas origem do valor efetivo nÃ£o foi provada | PrÃ©-requisito de execuÃ§Ã£o E2E S4 | BARBER-06/12 |
+
+Riscos principais: complexidade de concorrÃªncia e DST; propriedade de dados operacionais por Member; crescimento do escopo; retenÃ§Ã£o de dados pessoais; afirmar funcionamento E2E sem execuÃ§Ã£o. Mitigar com decisÃµes antes das Tasks dependentes, testes PostgreSQL reais e critÃ©rios de aceite verificÃ¡veis.
+
+## 11. Definition of Done
+
+### Sprint 4
+
+- MÃ³dulo acessÃ­vel apenas para membership vÃ¡lido, organizaÃ§Ã£o ativa, mÃ³dulo Barber habilitado e permissÃ£o adequada.
+- Perfil, profissionais com/sem conta, serviÃ§os/associaÃ§Ãµes e clientes funcionam sem cruzar tenants.
+- Regras Owner/Admin/Member sÃ£o cobertas no backend e documentadas por entidade.
+- Migrations explÃ­citas, reversÃ­veis e sem perda de histÃ³rico; sem upload pÃºblico.
+- Testes unitÃ¡rios, integraÃ§Ã£o e frontend crÃ­ticos passam; E2E apenas marcado como funcional depois de comprovado contra PostgreSQL de teste isolado.
+- Lint, format check, typecheck, build e CI passam ou tÃªm falha documentada/resolvida conforme processo do projeto.
+- DocumentaÃ§Ã£o descreve limitaÃ§Ãµes reais e nÃ£o agenda features futuras como jÃ¡ implementadas.
+
+### Sprint 5
+
+- HorÃ¡rios, pausas/exceÃ§Ãµes e agenda usam timezone organizacional e preservam instantes durante DST.
+- Estados, autorizaÃ§Ã£o por propriedade, snapshots EUR/duraÃ§Ã£o e histÃ³rico respeitam decisÃµes aprovadas.
+- Conflitos e requisiÃ§Ãµes concorrentes sÃ£o bloqueados no backend/DB e demonstrados em teste PostgreSQL.
+- Dashboard deriva apenas de dados reais e respeita tenant/timezone/permissÃµes.
+- E2E de fluxo completo e isolamento passa na base dedicada; qualidade CI e documentaÃ§Ã£o concluÃ­das.
+
+## 12. Ficheiros e alteraÃ§Ãµes desta tarefa
+
+Planeamento documentado neste ficheiro. O estado funcional do repositÃ³rio nÃ£o foi alterado. Foram apenas inspecionados arquivos e criada esta documentaÃ§Ã£o de planeamento autorizada; nenhum cÃ³digo funcional, migration, configuraÃ§Ã£o ou dependÃªncia foi alterado. Nenhum teste/comando de validaÃ§Ã£o foi executado; branch, commits e ficheiros nÃ£o rastreados foram preservados.
+
+
+============================================================
+FICHEIRO: .\SPRINT-4-AUDIT-REPORT.txt
+============================================================
+**********************
+Windows PowerShell transcript start
+Start time: 20261117152020
+Username: LUCAS2026\conta
+RunAs User: LUCAS2026\conta
+Configuration Name: 
+Machine: LUCAS2026 (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe -noexit -command try { . "c:\Users\conta\AppData\Local\Programs\Microsoft VS Code\69047191fc\resources\app\out\vs\workbench\contrib\terminal\common\scripts\shellIntegration.ps1" } catch {}
+Process ID: 18084
+PSVersion: 5.1.26100.9818
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.9818
+BuildVersion: 10.0.26100.9818
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is SPRINT-4-AUDIT-REPORT.txt
+
+========== 1. BRANCH ATUAL ==========
+
+
+========== 2. ESTADO DO GIT ==========
+
+
+========== 3. ULTIMOS COMMITS ==========
+
+
+========== 4. DIFERENCA EM RELACAO A DEVELOP ==========
+
+
+========== 5. ESTRUTURA DOS MODULOS ==========
+
+
+========== 6. DOCUMENTACAO ==========
+
+========== 7. ENTIDADES DO BACKEND ==========
+
+========== 8. MIGRATIONS ==========
+
+========== 9. DOCUMENTACAO DO DEVELOPER MODULE ==========
+
+========== 10. RESUMO DO PACKAGE ROOT ==========
+**********************
+Windows PowerShell transcript end
+End time: 20261117152136
+**********************
+
+
+============================================================
+10. FICHEIROS NAO RASTREADOS IMPORTANTES
+============================================================
+SPRINT-4-AUDIT-REPORT.txt:
+SPRINT-4-AUDIT-REPORT.txt
+
+Artifacts:
+artifacts/sprint-3-visual/diagnostic.png
+artifacts/sprint-3-visual/home-1024.png
+artifacts/sprint-3-visual/home-1440.png
+artifacts/sprint-3-visual/home-375-final.png
+artifacts/sprint-3-visual/home-375-postfix.png
+artifacts/sprint-3-visual/home-375-verified.png
+artifacts/sprint-3-visual/home-375.png
+artifacts/sprint-3-visual/home-768.png
+artifacts/sprint-3-visual/login-1024.png
+artifacts/sprint-3-visual/login-1440.png
+artifacts/sprint-3-visual/login-375.png
+artifacts/sprint-3-visual/login-768.png
+artifacts/sprint-3-visual/register-1024.png
+artifacts/sprint-3-visual/register-1440.png
+artifacts/sprint-3-visual/register-375.png
+artifacts/sprint-3-visual/register-768.png
+
+
+============================================================
+11. INFORMACAO DE CONFIGURACAO SEM EXPOR SEGREDOS
+============================================================
+Node: v24.19.0
+NPM: 11.17.0
+Git: git version 2.55.0.windows.3
+
+Docker:
+NAME                            IMAGE                COMMAND                  SERVICE         CREATED       STATUS                  PORTS
+saas-platform-postgres-1        postgres:17-alpine   "docker-entrypoint.sÔÇª"   postgres        3 weeks ago   Up 38 hours (healthy)   127.0.0.1:5432->5432/tcp
+saas-platform-postgres-test-1   postgres:17-alpine   "docker-entrypoint.sÔÇª"   postgres-test   5 days ago    Up 14 hours (healthy)   127.0.0.1:5433->5432/tcp
+
+
+============================================================
+12. INSTRUCOES PARA A REVISAO
+============================================================
+Este relatorio foi criado para revisao do planeamento das Sprints 4 e 5.
+
+Nao foram executados:
+- testes;
+- migrations;
+- instalacoes;
+- alteracoes de codigo;
+- commits;
+- pushes;
+- merges;
+- resets;
+- eliminacoes de ficheiros.
+
+O objetivo e permitir uma revisao completa antes de aprovar a implementacao.

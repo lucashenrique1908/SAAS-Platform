@@ -24,7 +24,8 @@
     "typecheck": "tsc --noEmit --incremental false --project tsconfig.json",
     "migration:generate": "typeorm-ts-node-esm migration:generate -d src/database/data-source.ts",
     "migration:run": "typeorm-ts-node-esm migration:run -d src/database/data-source.ts",
-    "migration:revert": "typeorm-ts-node-esm migration:revert -d src/database/data-source.ts"
+    "migration:revert": "typeorm-ts-node-esm migration:revert -d src/database/data-source.ts",
+    "seed:barber-demo": "node --loader ts-node/esm src/database/seeds/barber-demo.ts"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

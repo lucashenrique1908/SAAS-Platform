@@ -763,6 +763,221 @@ describe('Authentication and authorization (e2e)', () => {
     await member.get(`/organizations/${slug}/modules/dentist`).expect(404);
   });
 
+  it('enforces Barber activation, membership permissions, tenant isolation, and Owner-only professional deletion', async () => {
+    const owner = await createVerifiedUser('barber-owner@example.test');
+    const admin = await createVerifiedUser('barber-admin@example.test');
+    const member = await createVerifiedUser('barber-member@example.test');
+    const otherOwner = await createVerifiedUser(
+      'barber-other-owner@example.test',
+    );
+    const ownerProfile = (await owner.get('/auth/me').expect(200)).body;
+    const slug = ownerProfile.memberships[0].organizationSlug as string;
+    const memberId = (await member.get('/auth/me').expect(200)).body
+      .id as string;
+
+    await withCsrf(owner.post(`/organizations/${slug}/members`))
+      .send({ email: 'barber-admin@example.test', role: 'admin' })
+      .expect(201);
+    await withCsrf(owner.post(`/organizations/${slug}/members`))
+      .send({ email: 'barber-member@example.test', role: 'member' })
+      .expect(201);
+    await withCsrf(
+      owner.patch(`/organizations/${slug}/members/${memberId}/permissions`),
+    )
+      .send({ permissions: ['barber:read', 'barber:write'] })
+      .expect(200);
+
+    await owner.get(`/organizations/${slug}/barber/professionals`).expect(403);
+    await withCsrf(owner.patch(`/organizations/${slug}/modules`))
+      .send({ key: 'barber', enabled: true })
+      .expect(200);
+    await member.get(`/organizations/${slug}/barber/professionals`).expect(200);
+    await otherOwner
+      .get(`/organizations/${slug}/barber/professionals`)
+      .expect(404);
+
+    const professional = await withCsrf(
+      owner.post(`/organizations/${slug}/barber/professionals`),
+    )
+      .send({ displayName: 'Alex Silva', userId: memberId })
+      .expect(201);
+    const editable = await member
+      .get(`/organizations/${slug}/barber/professional-access`)
+      .expect(200);
+    expect(editable.body).toContain(professional.body.id);
+    await member.get(`/organizations/${slug}/barber/professionals`).expect(200);
+    await withCsrf(member.post(`/organizations/${slug}/barber/services`))
+      .send({ name: 'Corte', priceCents: 1800, durationMinutes: 30 })
+      .expect(403);
+
+    await withCsrf(
+      admin.delete(
+        `/organizations/${slug}/barber/professionals/${professional.body.id}`,
+      ),
+    ).expect(403);
+    await withCsrf(
+      owner.delete(`/organizations/${slug}/members/${memberId}`),
+    ).expect(200);
+    const unlinked = await owner
+      .get(`/organizations/${slug}/barber/professionals`)
+      .expect(200);
+    expect(
+      unlinked.body.find(
+        (item: { id: string }) => item.id === professional.body.id,
+      ).userId,
+    ).toBeNull();
+    await withCsrf(
+      owner.delete(
+        `/organizations/${slug}/barber/professionals/${professional.body.id}`,
+      ),
+    ).expect(200);
+  });
+
+  it('scopes client operations to the responsible professional and preserves clients when the professional is deleted', async () => {
+    const owner = await createVerifiedUser('barber-data-owner@example.test');
+    const admin = await createVerifiedUser('barber-data-admin@example.test');
+    const member = await createVerifiedUser('barber-data-member@example.test');
+    const slug = (await owner.get('/auth/me').expect(200)).body.memberships[0]
+      .organizationSlug as string;
+    const memberId = (await member.get('/auth/me').expect(200)).body
+      .id as string;
+    await withCsrf(owner.post(`/organizations/${slug}/members`))
+      .send({ email: 'barber-data-admin@example.test', role: 'admin' })
+      .expect(201);
+    await withCsrf(owner.post(`/organizations/${slug}/members`))
+      .send({ email: 'barber-data-member@example.test', role: 'member' })
+      .expect(201);
+    await withCsrf(
+      owner.patch(`/organizations/${slug}/members/${memberId}/permissions`),
+    )
+      .send({ permissions: ['barber:read', 'barber:write'] })
+      .expect(200);
+    await withCsrf(owner.patch(`/organizations/${slug}/modules`))
+      .send({ key: 'barber', enabled: true })
+      .expect(200);
+    const professional = await withCsrf(
+      owner.post(`/organizations/${slug}/barber/professionals`),
+    )
+      .send({ displayName: 'Alex Silva', userId: memberId })
+      .expect(201);
+    const service = await withCsrf(
+      owner.post(`/organizations/${slug}/barber/services`),
+    )
+      .send({ name: 'Corte clássico', priceCents: 1800, durationMinutes: 30 })
+      .expect(201);
+    await withCsrf(
+      owner.put(`/organizations/${slug}/barber/professional-services`),
+    )
+      .send({
+        professionalId: professional.body.id,
+        serviceId: service.body.id,
+        enabled: true,
+      })
+      .expect(200);
+    expect(
+      (
+        await admin
+          .get(`/organizations/${slug}/barber/professional-services`)
+          .expect(200)
+      ).body,
+    ).toHaveLength(1);
+
+    const privateClient = await withCsrf(
+      owner.post(`/organizations/${slug}/barber/clients`),
+    )
+      .send({ fullName: 'Joana Sousa', phone: '+351 910 000 010' })
+      .expect(201);
+    await withCsrf(member.post(`/organizations/${slug}/barber/clients`))
+      .send({ fullName: 'Joana Sousa', phone: '+351 910 000 010' })
+      .expect(201);
+    const ownClients = await member
+      .get(`/organizations/${slug}/barber/clients`)
+      .expect(200);
+    expect(ownClients.body).toHaveLength(1);
+    await withCsrf(
+      member.put(
+        `/organizations/${slug}/barber/clients/${privateClient.body.id}`,
+      ),
+    )
+      .send({ fullName: 'Acesso indevido', phone: '+351 910 000 011' })
+      .expect(404);
+    await withCsrf(
+      admin.delete(
+        `/organizations/${slug}/barber/professionals/${professional.body.id}`,
+      ),
+    ).expect(403);
+    await withCsrf(
+      owner.delete(
+        `/organizations/${slug}/barber/professionals/${professional.body.id}`,
+      ),
+    ).expect(200);
+    const preserved = await owner
+      .get(`/organizations/${slug}/barber/clients`)
+      .expect(200);
+    expect(preserved.body).toHaveLength(2);
+    expect(
+      preserved.body.every(
+        (item: { responsibleProfessionalId: string | null }) =>
+          item.responsibleProfessionalId === null,
+      ),
+    ).toBe(true);
+    expect(
+      await dataSource.query(
+        'SELECT id FROM barber_professional_services WHERE organization_id = (SELECT id FROM organizations WHERE slug = $1)',
+        [slug],
+      ),
+    ).toHaveLength(0);
+  });
+
+  it('authenticates a customer without internal membership and exposes only that customer record', async () => {
+    const owner = await createVerifiedUser(
+      'barber-customer-owner@example.test',
+    );
+    const slug = (await owner.get('/auth/me').expect(200)).body.memberships[0]
+      .organizationSlug as string;
+    await register('barber-customer@example.test');
+    await verify(deliveredTokens.verification.at(-1)!);
+    const customer = request.agent(app.getHttpServer());
+    await withCsrf(customer.post('/auth/login'))
+      .send({ email: 'barber-customer@example.test', password: validPassword })
+      .expect(200);
+    expect(
+      (await customer.get('/auth/me').expect(200)).body.memberships,
+    ).toEqual([]);
+    const customerId = (
+      await dataSource.query('SELECT id FROM users WHERE email = $1', [
+        'barber-customer@example.test',
+      ])
+    )[0].id as string;
+    const organizationId = (
+      await dataSource.query('SELECT id FROM organizations WHERE slug = $1', [
+        slug,
+      ])
+    )[0].id as string;
+    await dataSource.query(
+      'INSERT INTO barber_clients (organization_id, user_id, full_name, phone) VALUES ($1, $2, $3, $4)',
+      [organizationId, customerId, 'Cliente Teste', '+351 910 000 001'],
+    );
+    const customerData = await customer.get('/barber-customer/me').expect(200);
+    expect(customerData.body).toEqual(
+      expect.objectContaining({
+        fullName: 'Cliente Teste',
+        phone: '+351 910 000 001',
+      }),
+    );
+    await customer.get(`/organizations/${slug}/barber/clients`).expect(404);
+    const anotherCustomer = request.agent(app.getHttpServer());
+    await register('barber-customer-other@example.test');
+    await verify(deliveredTokens.verification.at(-1)!);
+    await withCsrf(anotherCustomer.post('/auth/login'))
+      .send({
+        email: 'barber-customer-other@example.test',
+        password: validPassword,
+      })
+      .expect(200);
+    await anotherCustomer.get('/barber-customer/me').expect(404);
+  });
+
   it('deactivates and reactivates organizations and requires explicit deletion confirmation', async () => {
     const owner = await createVerifiedUser('lifecycle-owner@example.test');
     const slug = (await owner.get('/auth/me').expect(200)).body.memberships[0]

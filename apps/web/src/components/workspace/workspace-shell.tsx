@@ -90,7 +90,10 @@ export function WorkspaceShell({
         ]
       : []),
     ...visibleModules.map(({ key }) => ({
-      href: `/workspace/${organization.slug}/modules/${key}`,
+      href:
+        key === "barber"
+          ? `/workspace/${organization.slug}/barber`
+          : `/workspace/${organization.slug}/modules/${key}`,
       label: moduleLabels[key] ?? key,
       icon: Boxes,
     })),
